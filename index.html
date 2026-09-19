@@ -175,6 +175,32 @@
   footer a{color:var(--accent);}
   .io-row{margin-top:14px; padding-top:10px; border-top:1px solid var(--border); font-size:.74rem;}
   .io-row a{color:var(--text-dim); text-decoration:underline; text-underline-offset:2px;}
+
+  .toast{
+    position:fixed; left:50%; bottom:24px; transform:translateX(-50%);
+    background:var(--bg-elev); border:1px solid var(--border); color:var(--text);
+    padding:12px 18px; border-radius:10px; font-size:.88rem; max-width:90%;
+    box-shadow:0 4px 18px rgba(0,0,0,.25); z-index:1000; text-align:center;
+  }
+  .toast.error{border-color:var(--danger); color:var(--danger);}
+  .toast.success{border-color:var(--ok); color:var(--ok);}
+
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(0,0,0,.55);
+    display:flex; align-items:center; justify-content:center; z-index:1001; padding:20px;
+  }
+  .modal-box{
+    background:var(--bg-elev); border:1px solid var(--border); border-radius:12px;
+    padding:20px; max-width:380px; width:100%;
+  }
+  .modal-msg{font-size:.92rem; margin-bottom:16px; line-height:1.4;}
+  .modal-actions{display:flex; gap:10px; justify-content:flex-end;}
+  .modal-btn{
+    font-family:inherit; font-size:.85rem; font-weight:600; cursor:pointer;
+    border-radius:7px; padding:8px 14px; border:1px solid var(--border);
+  }
+  .modal-btn.cancel{background:var(--bg-sub); color:var(--text);}
+  .modal-btn.ok{background:var(--danger); color:#fff; border-color:var(--danger);}
 </style>
 </head>
 <body>
@@ -190,9 +216,9 @@
       <path d="M13.5 6.2 15 9.5"/>
     </svg>
     <div>
-      <h1>Bitácora de mantenimiento</h1>
+      <h1>Bitácora de mantenimiento.</h1>
       <div class="sub">Royal Enfield Himalayan 450 — según cuadro periódico del manual</div>
-      <div class="sub" id="syncStatus" style="margin-top:2px;">🔄 Conectando…</div>
+      <div class="sub">Guardado en este dispositivo — usá "Exportar/Importar datos" (abajo del todo) para pasar los datos a otro aparato.</div>
     </div>
   </header>
 
@@ -228,6 +254,17 @@
   </div>
 
   <div id="lists"></div>
+
+  <div id="toast" class="toast" style="display:none;"></div>
+  <div id="confirmModal" class="modal-overlay" style="display:none;">
+    <div class="modal-box">
+      <div id="confirmMsg" class="modal-msg"></div>
+      <div class="modal-actions">
+        <button id="confirmCancel" class="modal-btn cancel">Cancelar</button>
+        <button id="confirmOk" class="modal-btn ok">Continuar</button>
+      </div>
+    </div>
+  </div>
 
   <footer>
     Basado en el cuadro «Periodical Maintenance» del manual del propietario (algunas revisiones menores del cuadro oficial
@@ -283,6 +320,37 @@
     {id:'general', name:'Revisión general (dirección, radios, tornillería de motor/chasis, mangueras de freno)', action:'Inspeccionar', km:5000, months:6}
   ];
 
+  function showToast(msg, kind){
+    var el = document.getElementById('toast');
+    if(!el) return;
+    el.textContent = msg;
+    el.className = 'toast' + (kind ? ' ' + kind : '');
+    el.style.display = 'block';
+    clearTimeout(el._hideTimer);
+    el._hideTimer = setTimeout(function(){ el.style.display = 'none'; }, 3500);
+  }
+
+  function showConfirm(msg){
+    return new Promise(function(resolve){
+      var overlay = document.getElementById('confirmModal');
+      var msgEl = document.getElementById('confirmMsg');
+      var okBtn = document.getElementById('confirmOk');
+      var cancelBtn = document.getElementById('confirmCancel');
+      msgEl.textContent = msg;
+      overlay.style.display = 'flex';
+      function cleanup(result){
+        overlay.style.display = 'none';
+        okBtn.removeEventListener('click', onOk);
+        cancelBtn.removeEventListener('click', onCancel);
+        resolve(result);
+      }
+      function onOk(){ cleanup(true); }
+      function onCancel(){ cleanup(false); }
+      okBtn.addEventListener('click', onOk);
+      cancelBtn.addEventListener('click', onCancel);
+    });
+  }
+
   function loadState(){
     try{
       var raw = localStorage.getItem(STORAGE_KEY);
@@ -290,79 +358,8 @@
     }catch(e){}
     return {};
   }
-  var dbNS = null;
-  var dbSaveTimer = null;
-  var DB_DOC_PATH = 'himalayan/state';
-
-  // ── SYNC VÍA GITHUB (para cuando esta página corre fuera de claude.ai,
-  //    ej. GitHub Pages) — mismo método que revista-matutina: la página
-  //    llama directo a la API de GitHub con este token. El token queda
-  //    visible para quien vea el código fuente de la página pública;
-  //    por eso el token está limitado (fine-grained) solo a este repo. ──
-  var GITHUB_TOKEN = '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';
-  var GITHUB_USER  = 'ti3wti';
-  var GITHUB_REPO  = 'himalayan450';
-  var GITHUB_FILE  = 'data/himalayan.json';
-  var GITHUB_API   = 'https://api.github.com/repos/' + GITHUB_USER + '/' + GITHUB_REPO + '/contents/' + GITHUB_FILE;
-  var githubFileSha = null;
-  var ghSyncTimer = null;
-
-  function b64EncodeUnicode(str){
-    return btoa(unescape(encodeURIComponent(str)));
-  }
-  function b64DecodeUnicode(str){
-    return decodeURIComponent(escape(atob(str.replace(/\n/g, ''))));
-  }
-
-  // Devuelve: objeto con los datos, null si el archivo aún no existe, undefined si hubo error de red/token.
-  async function loadFromGitHub(){
-    try{
-      var res = await fetch(GITHUB_API, {
-        headers: { 'Authorization': 'Bearer ' + GITHUB_TOKEN, 'Accept': 'application/vnd.github+json' }
-      });
-      if(res.status === 404) return null;
-      if(!res.ok) return undefined;
-      var json = await res.json();
-      githubFileSha = json.sha;
-      return JSON.parse(b64DecodeUnicode(json.content));
-    }catch(e){ return undefined; }
-  }
-
-  async function saveToGitHub(stateObj){
-    try{
-      var body = {
-        message: 'Actualizar bitácora — ' + new Date().toISOString(),
-        content: b64EncodeUnicode(JSON.stringify(stateObj, null, 2)),
-        branch: 'main'
-      };
-      if(githubFileSha) body.sha = githubFileSha;
-      var res = await fetch(GITHUB_API, {
-        method: 'PUT',
-        headers: { 'Authorization': 'Bearer ' + GITHUB_TOKEN, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-      if(res.ok){
-        var json = await res.json();
-        if(json.content) githubFileSha = json.content.sha;
-      } else if(res.status === 409){
-        // alguien (el otro dispositivo) escribió primero: traer lo último y no pisarlo
-        var fresh = await loadFromGitHub();
-        if(fresh){ state = fresh; normalizeState(); render(); }
-      }
-    }catch(e){}
-  }
-
   function saveState(state){
     try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){}
-    if(dbNS){
-      clearTimeout(dbSaveTimer);
-      dbSaveTimer = setTimeout(function(){
-        dbNS.doc(DB_DOC_PATH).set(state).catch(function(){});
-      }, 500);
-    } else if(!(window.claude && typeof window.claude.use === 'function') && GITHUB_TOKEN){
-      clearTimeout(ghSyncTimer);
-      ghSyncTimer = setTimeout(function(){ saveToGitHub(state); }, 800);
-    }
   }
 
   var state = loadState();
@@ -809,7 +806,7 @@
     ev.preventDefault();
     var json = JSON.stringify(state, null, 2);
     var d = new Date();
-    var filename = 'himalayan-respaldo-' + d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0') + '.json';
+    var filename = 'himalayan-respaldo-' + d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0') + '-' + String(d.getHours()).padStart(2,'0') + String(d.getMinutes()).padStart(2,'0') + String(d.getSeconds()).padStart(2,'0') + '.json';
 
     function fallbackDownload(){
       try{
@@ -819,15 +816,18 @@
         a.href = url; a.download = filename;
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
         setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+        showToast('Respaldo descargado: ' + filename, 'success');
       }catch(e){
-        alert('No se pudo generar el archivo de respaldo en este navegador.');
+        showToast('No se pudo generar el archivo de respaldo en este navegador.', 'error');
       }
     }
 
     if(window.claude && typeof window.claude.use === 'function'){
       window.claude.use('downloads').then(function(dl){
         if(!dl){ fallbackDownload(); return; }
-        dl.save({ filename: filename, data: new Blob([json], {type:'application/json'}) }).catch(function(){ fallbackDownload(); });
+        dl.save({ filename: filename, data: new Blob([json], {type:'application/json'}) }).then(function(){
+          showToast('Respaldo descargado: ' + filename, 'success');
+        }).catch(function(){ fallbackDownload(); });
       }).catch(fallbackDownload);
     } else {
       fallbackDownload();
@@ -846,86 +846,30 @@
     reader.onload = function(){
       var parsed;
       try{ parsed = JSON.parse(reader.result); }catch(e){
-        alert('El archivo no es un respaldo válido (JSON dañado o de otro tipo).');
+        showToast('El archivo no es un respaldo válido (JSON dañado o de otro tipo).', 'error');
         importFile.value = '';
         return;
       }
       if(!parsed || typeof parsed !== 'object' || (!parsed.items && !parsed.services)){
-        alert('El archivo no parece un respaldo de esta bitácora.');
+        showToast('El archivo no parece un respaldo de esta bitácora.', 'error');
         importFile.value = '';
         return;
       }
-      if(!confirm('Esto va a REEMPLAZAR todos los datos actuales (km, revisiones, historial) con los del archivo. ¿Continuar?')){
+      showConfirm('Esto va a REEMPLAZAR todos los datos actuales con los del archivo (km en el archivo: ' + (parsed.kmActual !== undefined ? parsed.kmActual : '—') + '). ¿Continuar?').then(function(ok){
+        if(!ok){
+          importFile.value = '';
+          return;
+        }
+        state = parsed;
+        normalizeState();
+        saveState(state);
+        render();
         importFile.value = '';
-        return;
-      }
-      state = parsed;
-      normalizeState();
-      saveState(state);
-      render();
-      importFile.value = '';
-      alert('Respaldo importado correctamente.');
+        showToast('Importado. Km actual ahora: ' + state.kmActual, 'success');
+      });
     };
     reader.readAsText(file);
   });
-
-  var syncStatusEl = document.getElementById('syncStatus');
-  if(window.claude && typeof window.claude.use === 'function'){
-    window.claude.use('db').then(function(db){
-      if(!db){
-        syncStatusEl.textContent = '📴 Solo en este dispositivo (sin cuenta conectada)';
-        return;
-      }
-      dbNS = db;
-      dbNS.doc(DB_DOC_PATH).onSnapshot(function(snap){
-        if(snap.exists){
-          var remote = snap.data();
-          if(remote && !snap.metadata.hasPendingWrites){
-            state = remote;
-            normalizeState();
-            render();
-          }
-          syncStatusEl.textContent = '☁️ Sincronizado con tu cuenta';
-        } else {
-          // no hay nada en la nube todavía: sembrar con lo que ya está en este dispositivo
-          dbNS.doc(DB_DOC_PATH).set(state).catch(function(){});
-          syncStatusEl.textContent = '☁️ Sincronizado con tu cuenta';
-        }
-      }, function(){
-        syncStatusEl.textContent = '📴 Solo en este dispositivo (sin cuenta conectada)';
-      });
-    }).catch(function(){
-      syncStatusEl.textContent = '📴 Solo en este dispositivo (sin cuenta conectada)';
-    });
-  } else if(GITHUB_TOKEN){
-    syncStatusEl.textContent = '🔄 Conectando con GitHub…';
-    loadFromGitHub().then(function(remote){
-      if(remote){
-        state = remote;
-        normalizeState();
-        render();
-        syncStatusEl.textContent = '☁️ Sincronizado con GitHub (' + GITHUB_USER + '/' + GITHUB_REPO + ')';
-      } else if(remote === null){
-        // el archivo de datos todavía no existe en el repo: crearlo con lo que ya hay en este dispositivo
-        saveToGitHub(state);
-        syncStatusEl.textContent = '☁️ Sincronizado con GitHub (' + GITHUB_USER + '/' + GITHUB_REPO + ')';
-      } else {
-        syncStatusEl.textContent = '📴 Sin conexión con GitHub (revisá el token o tu internet)';
-      }
-      // repaso periódico simple para traer lo que edite el otro dispositivo
-      setInterval(function(){
-        loadFromGitHub().then(function(remote2){
-          if(remote2 && JSON.stringify(remote2) !== JSON.stringify(state)){
-            state = remote2;
-            normalizeState();
-            render();
-          }
-        });
-      }, 20000);
-    });
-  } else {
-    syncStatusEl.textContent = '📴 Solo en este dispositivo';
-  }
 })();
 </script>
 </body>
