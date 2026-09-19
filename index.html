@@ -216,7 +216,7 @@
       <path d="M13.5 6.2 15 9.5"/>
     </svg>
     <div>
-      <h1>Bitácora de mantenimiento.</h1>
+      <h1>Bitácora de mantenimiento</h1>
       <div class="sub">Royal Enfield Himalayan 450 — según cuadro periódico del manual</div>
       <div class="sub" id="syncStatus">🔄 Conectando con GitHub…</div>
     </div>
@@ -370,6 +370,7 @@
   var GITHUB_API   = 'https://api.github.com/repos/' + GITHUB_USER + '/' + GITHUB_REPO + '/contents/' + GITHUB_FILE;
   var githubFileSha = null;
   var ghSyncTimer = null;
+  var pendingWrites = 0;
 
   function b64EncodeUnicode(str){ return btoa(unescape(encodeURIComponent(str))); }
   function b64DecodeUnicode(str){ return decodeURIComponent(escape(atob(str.replace(/\n/g, '')))); }
@@ -388,6 +389,7 @@
   }
 
   async function saveToGitHub(stateObj){
+    pendingWrites++;
     try{
       var body = {
         message: 'Actualizar bitácora — ' + new Date().toISOString(),
@@ -398,7 +400,8 @@
       var res = await fetch(GITHUB_API, {
         method: 'PUT',
         headers: { 'Authorization': 'Bearer ' + GITHUB_TOKEN, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
+        body: JSON.stringify(body),
+        keepalive: true
       });
       if(res.ok){
         var json = await res.json();
@@ -407,14 +410,29 @@
         var fresh = await loadFromGitHub();
         if(fresh){ state = fresh; normalizeState(); render(); }
       }
-    }catch(e){}
+    }catch(e){
+    } finally {
+      pendingWrites--;
+    }
   }
 
   function saveState(state){
     try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){}
     clearTimeout(ghSyncTimer);
-    ghSyncTimer = setTimeout(function(){ saveToGitHub(state); }, 800);
+    pendingWrites++; // marcado como pendiente YA, para que el sondeo no pise mientras esperamos el debounce
+    ghSyncTimer = setTimeout(function(){
+      pendingWrites--;
+      saveToGitHub(state);
+    }, 400);
   }
+
+  document.addEventListener('visibilitychange', function(){
+    if(document.hidden && ghSyncTimer){
+      clearTimeout(ghSyncTimer);
+      pendingWrites--;
+      saveToGitHub(state);
+    }
+  });
 
   var state = loadState();
   if(state.kmActual === undefined) state.kmActual = 8989;
@@ -867,7 +885,9 @@
       syncStatusEl.textContent = '📴 Sin conexión — guardando solo en este dispositivo';
     }
     setInterval(function(){
+      if(pendingWrites > 0) return; // hay un guardado en camino: no pisarlo con una lectura vieja
       loadFromGitHub().then(function(remote2){
+        if(pendingWrites > 0) return; // pudo haber empezado un guardado mientras esperábamos la respuesta
         if(remote2 && JSON.stringify(remote2) !== JSON.stringify(state)){
           state = remote2;
           normalizeState();
