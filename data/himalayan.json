@@ -16,10 +16,13 @@
   },
   "items": {
     "oil_level": {
-      "currentServiceId": "rev3",
-      "lastKm": "",
-      "lastDate": "",
+      "currentServiceId": null,
+      "lastKm": "8990",
+      "lastDate": "2026-09-19",
       "history": [
+        {
+          "serviceId": "rev3"
+        },
         {
           "serviceId": "rev2"
         },
