@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bitácora — Himalayan 450</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#EFEAE0; --bg-elev:#FFFFFF; --bg-sub:#E5DFCF;
+    --text:#20242A; --text-dim:#5C6570;
+    --accent:#8A6D1D; --accent-2:#54633F;
+    --danger:#B23A2E; --warn:#A87A12; --ok:#3F7A4E;
+    --border:#D9D2C3;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#14171A; --bg-elev:#1C2024; --bg-sub:#20252A;
+      --text:#EDEAE0; --text-dim:#9AA0A6;
+      --accent:#C9A227; --accent-2:#8AA06E;
+      --danger:#E06A55; --warn:#E0A93B; --ok:#7FA66B;
+      --border:#2A2F34;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#14171A; --bg-elev:#1C2024; --bg-sub:#20252A;
+    --text:#EDEAE0; --text-dim:#9AA0A6;
+    --accent:#C9A227; --accent-2:#8AA06E;
+    --danger:#E06A55; --warn:#E0A93B; --ok:#7FA66B;
+    --border:#2A2F34;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:'Inter',-apple-system,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:720px; margin:0 auto; padding:28px 18px 60px;}
+  header{display:flex; align-items:center; gap:14px; margin-bottom:22px;}
+  header svg{flex:none; width:46px; height:46px; color:var(--accent);}
+  h1{
+    font-family:'Oswald',sans-serif; font-weight:600; font-size:1.5rem;
+    letter-spacing:.01em; margin:0; line-height:1.15;
+  }
+  .sub{color:var(--text-dim); font-size:.86rem; margin-top:3px;}
+
+  .panel{
+    background:var(--bg-elev); border:1px solid var(--border);
+    border-radius:10px; padding:18px 18px 16px; margin-bottom:18px;
+  }
+  .panel h2{
+    font-family:'Oswald',sans-serif; font-weight:500; font-size:.78rem;
+    text-transform:none; letter-spacing:.02em; color:var(--text-dim);
+    margin:0 0 12px;
+  }
+  .odo-row{display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end;}
+  .field{display:flex; flex-direction:column; gap:5px;}
+  .field label{font-size:.78rem; color:var(--text-dim);}
+  input[type=number], input[type=date]{
+    background:var(--bg-sub); border:1px solid var(--border); color:var(--text);
+    border-radius:7px; padding:9px 10px; font-size:.95rem; font-family:inherit;
+    width:150px;
+  }
+  input[type=number]:focus, input[type=date]:focus{outline:2px solid var(--accent); outline-offset:1px;}
+  .today{font-size:.8rem; color:var(--text-dim); margin-left:auto;}
+
+  .banner{
+    display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-bottom:18px;
+  }
+  .pill{
+    min-width:0; border-radius:10px; padding:10px 8px;
+    border:1px solid var(--border); background:var(--bg-elev);
+    text-align:center;
+  }
+  .pill .n{font-family:'Oswald',sans-serif; font-size:1.4rem; font-weight:600; line-height:1;}
+  .pill .l{font-size:.68rem; color:var(--text-dim); margin-top:4px; white-space:nowrap;}
+  .pill.danger .n{color:var(--danger);}
+  .pill.warn .n{color:var(--warn);}
+  .pill.ok .n{color:var(--ok);}
+
+  .group-title{
+    font-family:'Oswald',sans-serif; font-weight:500; font-size:.82rem;
+    color:var(--text-dim); margin:22px 0 10px; padding-left:2px;
+  }
+
+  .item{
+    background:var(--bg-elev); border:1px solid var(--border); border-left:3px solid var(--border);
+    border-radius:9px; padding:13px 15px; margin-bottom:9px;
+  }
+  .item.danger{border-left-color:var(--danger);}
+  .item.warn{border-left-color:var(--warn);}
+  .item.ok{border-left-color:var(--ok);}
+
+  .item-top{display:flex; justify-content:space-between; align-items:baseline; gap:10px;}
+  .item-name{font-weight:600; font-size:.96rem;}
+  .badge{
+    font-size:.7rem; font-weight:600; padding:2px 9px; border-radius:99px;
+    white-space:nowrap; text-transform:uppercase; letter-spacing:.03em;
+  }
+  .badge.danger{background:rgba(178,58,46,.15); color:var(--danger); animation:blinkDanger 1.3s ease-in-out infinite;}
+  .badge.warn{background:rgba(168,122,18,.15); color:var(--warn);}
+  .badge.ok{background:rgba(63,122,78,.15); color:var(--ok);}
+
+  @keyframes blinkDanger{
+    0%, 100% { opacity:1; }
+    50% { opacity:.35; }
+  }
+
+  .item-meta{font-size:.8rem; color:var(--text-dim); margin-top:2px;}
+  .item-status{font-size:.85rem; margin-top:6px;}
+
+  .item-edit{
+    display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;
+    padding-top:10px; border-top:1px dashed var(--border);
+  }
+  .item-edit .field label{font-size:.72rem;}
+  .item-edit input{width:120px; padding:6px 8px; font-size:.85rem;}
+
+  .item-actions{display:flex; gap:8px; margin-top:9px; flex-wrap:wrap;}
+  .item-actions button{
+    font-family:inherit; font-size:.78rem; font-weight:600; cursor:pointer;
+    border-radius:7px; padding:6px 11px; border:1px solid var(--border);
+    background:var(--bg-sub); color:var(--text);
+  }
+  .btn-done{border-color:var(--ok) !important; color:var(--ok) !important;}
+  .btn-done:hover{background:rgba(63,122,78,.12);}
+  .btn-hist{color:var(--text-dim) !important;}
+  .btn-undo{color:var(--warn) !important; border-color:var(--warn) !important;}
+  .btn-undo:hover{background:rgba(168,122,18,.12);}
+
+  .hist-edit-row{display:flex; gap:6px; align-items:center;}
+  .hist-input{
+    background:var(--bg); border:1px solid var(--border); color:var(--text);
+    border-radius:6px; padding:5px 7px; font-size:.78rem; font-family:inherit;
+  }
+  .hist-input[type=date]{width:130px;}
+  .hist-input[type=number]{width:80px;}
+  .btn-del-hist{
+    background:none; border:none; cursor:pointer; font-size:.85rem;
+    padding:3px 6px; border-radius:6px; margin-left:auto;
+  }
+  .btn-del-hist:hover{background:rgba(178,58,46,.12);}
+
+  .item-history{
+    margin-top:9px; padding:9px 11px; background:var(--bg-sub);
+    border-radius:7px; font-size:.8rem; color:var(--text-dim);
+  }
+  .hist-row{padding:3px 0; border-bottom:1px dashed var(--border);}
+  .hist-row:last-child{border-bottom:none;}
+
+  #historyPanel{display:none;}
+  #historyPanel table{width:100%; border-collapse:collapse; font-size:.83rem;}
+  #historyPanel th{text-align:left; color:var(--text-dim); font-weight:500; font-size:.74rem; padding:5px 6px; border-bottom:1px solid var(--border);}
+  #historyPanel td{padding:6px 6px; border-bottom:1px solid var(--border);}
+  #historyPanel tr:last-child td{border-bottom:none;}
+  .btn-toggle-hist{
+    font-family:inherit; font-size:.78rem; font-weight:600; cursor:pointer;
+    border-radius:7px; padding:7px 12px; border:1px solid var(--border);
+    background:var(--bg-elev); color:var(--accent); margin-bottom:14px;
+  }
+
+  .service-row{
+    padding:10px 0; border-bottom:1px dashed var(--border);
+  }
+  .service-row:last-child{border-bottom:none;}
+  .service-row .service-label{font-size:.85rem; font-weight:600; margin-bottom:7px;}
+  .service-row .service-inputs{display:flex; gap:8px;}
+  .service-row .service-inputs input{
+    flex:1 1 0; min-width:0; width:auto; padding:8px 8px; font-size:.85rem;
+  }
+
+  footer{margin-top:28px; font-size:.78rem; color:var(--text-dim); line-height:1.5;}
+  footer a{color:var(--accent);}
+  .io-row{margin-top:14px; padding-top:10px; border-top:1px solid var(--border); font-size:.74rem;}
+  .io-row a{color:var(--text-dim); text-decoration:underline; text-underline-offset:2px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+      <circle cx="5.5" cy="17.5" r="3.2"/>
+      <circle cx="18.2" cy="17.5" r="3.2"/>
+      <path d="M5.5 17.5 9 9.5h6l3.2 8"/>
+      <path d="M9 9.5 7 6h3.5"/>
+      <path d="M9.2 13.3h5.6"/>
+      <path d="M13.5 6.2 15 9.5"/>
+    </svg>
+    <div>
+      <h1>Bitácora de mantenimiento</h1>
+      <div class="sub">Royal Enfield Himalayan 450 — según cuadro periódico del manual</div>
+      <div class="sub" id="syncStatus" style="margin-top:2px;">🔄 Conectando…</div>
+    </div>
+  </header>
+
+  <div class="panel">
+    <h2>Odómetro</h2>
+    <div class="odo-row">
+      <div class="field">
+        <label for="kmActual">Km actuales</label>
+        <input type="number" id="kmActual" min="0" step="1" placeholder="ej. 8200">
+      </div>
+      <div class="today" id="todayLabel"></div>
+    </div>
+  </div>
+
+  <div class="banner">
+    <div class="pill danger"><div class="n" id="countDanger">0</div><div class="l">Vencidos</div></div>
+    <div class="pill warn"><div class="n" id="countWarn">0</div><div class="l">Próximos</div></div>
+    <div class="pill ok"><div class="n" id="countOk">0</div><div class="l">Al día</div></div>
+  </div>
+
+  <div class="panel" id="dashPanel">
+    <h2>Contador oficial del tablero (Revisión en...)</h2>
+    <div class="item-name" style="margin-bottom:4px;">Próxima revisión — Royal Enfield</div>
+    <div class="item-status" id="dashStatus" style="font-size:.9rem;"></div>
+  </div>
+
+  <button class="btn-toggle-hist" id="toggleHistBtn">📋 Ver historial completo</button>
+  <div class="panel" id="historyPanel">
+    <h2>Revisiones de agencia (editar aquí actualiza todos los ítems que la usan)</h2>
+    <div id="servicesBox"></div>
+    <h2 style="margin-top:18px;">Historial de mantenimiento</h2>
+    <table id="historyTable"></table>
+  </div>
+
+  <div id="lists"></div>
+
+  <footer>
+    Basado en el cuadro «Periodical Maintenance» del manual del propietario (algunas revisiones menores del cuadro oficial
+    se agruparon aquí bajo "Revisión general" por simplicidad). Los datos se guardan en este navegador/dispositivo
+    (y en la nube de Claude cuando está disponible). Para intervalos exactos por ítem o para el registro de garantía,
+    siempre válido el chequeo en un Centro de Servicio Autorizado Royal Enfield.
+    <div class="io-row">
+      <a href="#" id="exportLink">Exportar datos (respaldo)</a> · <a href="#" id="importLink">Importar datos</a>
+      <input type="file" id="importFile" accept="application/json,.json" style="display:none">
+    </div>
+  </footer>
+
+</div>
+
+<script>
+(function(){
+  var STORAGE_KEY = 'himalayan-maintenance-v1';
+
+  // Revisiones de agencia: un solo registro por revisión, editable en un solo lugar.
+  // Los ítems solo GUARDAN a cuál revisión pertenecen (serviceId); la fecha/km real
+  // siempre se lee de aquí, así que editar una revisión reajusta todo lo vinculado a ella.
+  var SERVICES_DEFAULT = {
+    rev1: { date:'2024-10-04', km:'500' },
+    rev2: { date:'2025-04-30', km:'5000' },
+    rev3: { date:'2026-05-22', km:'7900' }
+  };
+  var SERVICE_ORDER = ['rev1', 'rev2', 'rev3'];
+  // Etiquetas cortas, siempre frescas (no se guardan, así que un cambio de texto se ve al toque)
+  var SERVICE_LABELS = { rev1:'Rev 1', rev2:'Rev 2', rev3:'Rev 3' };
+
+  // Contador oficial del tablero: leído el 19-set-2026 con el odómetro en 8989 km,
+  // el propio dash mostraba "Revisión en: 4219 km / 61 días" (lo que ocurra primero).
+  var DASH_TARGET_KM = 13208;   // 8989 + 4219
+  var DASH_TARGET_DATE = '2026-11-19'; // 19-set-2026 + 61 días
+
+  // interval.km: km entre servicios (null = solo por fecha)
+  // interval.months: meses entre servicios (null = solo por km)
+  var ITEMS = [
+    {id:'oil_level', name:'Nivel de aceite de motor', action:'Revisar y rellenar', km:1000, months:null},
+    {id:'oil_change', name:'Aceite y filtro de motor', action:'Reemplazar', km:10000, months:12},
+    {id:'air_filter', name:'Filtro de aire', action:'Limpiar / reemplazar', km:10000, months:12},
+    {id:'valve', name:'Holgura de válvulas (admisión/escape)', action:'Revisar y ajustar', km:20000, months:24},
+    {id:'plug', name:'Bujía', action:'Reemplazar', km:40000, months:48},
+    {id:'throttle', name:'Cuerpo de aceleración', action:'Limpiar', km:40000, months:48},
+    {id:'coolant', name:'Refrigerante', action:'Reemplazar', km:30000, months:36},
+    {id:'brake_fluid', name:'Líquido de frenos (del. y tras.)', action:'Reemplazar', km:20000, months:24},
+    {id:'brake_pads', name:'Pastillas de freno', action:'Inspeccionar desgaste', km:5000, months:6},
+    {id:'chain', name:'Cadena de transmisión', action:'Limpiar, lubricar y ajustar', km:500, months:null},
+    {id:'clutch', name:'Juego libre del embrague', action:'Ajustar', km:1000, months:null},
+    {id:'lever_pivots', name:'Pivotes de palancas (freno/embrague)', action:'Lubricar', km:1000, months:null},
+    {id:'tyres', name:'Neumáticos', action:'Revisar desgaste y presión', km:5000, months:6},
+    {id:'battery', name:'Terminales de batería', action:'Revisar / vaselina', km:5000, months:6},
+    {id:'general', name:'Revisión general (dirección, radios, tornillería de motor/chasis, mangueras de freno)', action:'Inspeccionar', km:5000, months:6}
+  ];
+
+  function loadState(){
+    try{
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if(raw) return JSON.parse(raw);
+    }catch(e){}
+    return {};
+  }
+  var dbNS = null;
+  var dbSaveTimer = null;
+  var DB_DOC_PATH = 'himalayan/state';
+  function saveState(state){
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){}
+    if(dbNS){
+      clearTimeout(dbSaveTimer);
+      dbSaveTimer = setTimeout(function(){
+        dbNS.doc(DB_DOC_PATH).set(state).catch(function(){});
+      }, 500);
+    }
+  }
+
+  var state = loadState();
+  if(state.kmActual === undefined) state.kmActual = 8989;
+
+  function findServiceIdByDate(dateStr){
+    for(var i=0;i<SERVICE_ORDER.length;i++){
+      var sid = SERVICE_ORDER[i];
+      if(state.services[sid].date === dateStr) return sid;
+    }
+    return null;
+  }
+
+  function normalizeState(){
+    if(!state.services) state.services = {};
+    SERVICE_ORDER.forEach(function(sid){
+      if(!state.services[sid]) state.services[sid] = { date: SERVICES_DEFAULT[sid].date, km: SERVICES_DEFAULT[sid].km };
+    });
+
+    if(!state.items) state.items = {};
+    ITEMS.forEach(function(it){
+      if(!state.items[it.id]){
+        state.items[it.id] = { currentServiceId: it.km ? 'rev3' : null, lastKm: '', lastDate: it.months ? state.services.rev3.date : '', history: [] };
+      }
+      var rec = state.items[it.id];
+      if(!rec.history) rec.history = [];
+      if(rec.currentServiceId === undefined) rec.currentServiceId = null;
+
+      // Migración: registros de versiones anteriores guardaban fecha/km sueltos.
+      // Si coinciden con una revisión conocida, se enlazan; si no, quedan como entrada personal.
+      if(!rec.currentServiceId && rec.lastDate){
+        var sid = findServiceIdByDate(rec.lastDate);
+        if(sid) rec.currentServiceId = sid;
+      }
+      if(rec.history.length === 0 && !rec.currentServiceId){
+        // ítem nunca inicializado: arrancarlo en la revisión 3 (línea base actual)
+        rec.currentServiceId = 'rev3';
+      }
+      rec.history.forEach(function(h){
+        if(!h.serviceId && h.date){
+          var sid2 = findServiceIdByDate(h.date);
+          if(sid2) h.serviceId = sid2;
+        }
+      });
+      // completar el historial con las revisiones anteriores que falten (rev1/rev2) si el ítem no las tiene
+      var haveIds = {};
+      if(rec.currentServiceId) haveIds[rec.currentServiceId] = true;
+      rec.history.forEach(function(h){ if(h.serviceId) haveIds[h.serviceId] = true; });
+      SERVICE_ORDER.slice(0, -1).forEach(function(sid){ // rev1, rev2 (no rev3, esa es la vigente por defecto)
+        if(!haveIds[sid]){
+          rec.history.push({ serviceId: sid });
+          haveIds[sid] = true;
+        }
+      });
+      rec.history.sort(function(a,b){
+        return resolveEntryDate(b).localeCompare(resolveEntryDate(a));
+      });
+    });
+  }
+  normalizeState();
+  saveState(state);
+
+  function resolveEntryDate(entry){
+    if(entry.serviceId && state.services[entry.serviceId]) return state.services[entry.serviceId].date || '';
+    return entry.date || '';
+  }
+  function resolveEntry(entry){
+    if(entry && entry.serviceId && state.services[entry.serviceId]){
+      var s = state.services[entry.serviceId];
+      return { date: s.date, km: s.km, serviceId: entry.serviceId, label: SERVICE_LABELS[entry.serviceId] };
+    }
+    return { date: (entry && entry.date) || '', km: (entry && entry.km) || '', serviceId: null, label: null };
+  }
+  function resolveCurrent(rec){
+    return resolveEntry({ serviceId: rec.currentServiceId, date: rec.lastDate, km: rec.lastKm });
+  }
+
+  var todayLabel = document.getElementById('todayLabel');
+  var kmActualInput = document.getElementById('kmActual');
+  var listsEl = document.getElementById('lists');
+
+  var today = new Date();
+  todayLabel.textContent = 'Hoy: ' + today.toLocaleDateString('es-CR', {day:'2-digit', month:'long', year:'numeric'});
+
+  kmActualInput.value = state.kmActual;
+  kmActualInput.addEventListener('input', function(){
+    state.kmActual = kmActualInput.value;
+    saveState(state);
+    render();
+  });
+
+  function addMonths(dateStr, months){
+    var d = new Date(dateStr + 'T00:00:00');
+    d.setMonth(d.getMonth() + months);
+    return d;
+  }
+
+  function daysBetween(a,b){
+    return Math.round((b - a) / 86400000);
+  }
+
+  var toggleHistBtn = document.getElementById('toggleHistBtn');
+  var historyPanel = document.getElementById('historyPanel');
+  toggleHistBtn.addEventListener('click', function(){
+    var showing = historyPanel.style.display === 'block';
+    historyPanel.style.display = showing ? 'none' : 'block';
+    toggleHistBtn.textContent = showing ? '📋 Ver historial completo' : '📋 Ocultar historial';
+    if(!showing){ renderServices(); renderHistoryPanel(); }
+  });
+
+  function renderHistoryPanel(){
+    var rows = [];
+    ITEMS.forEach(function(it){
+      var rec = state.items[it.id];
+      var cur = resolveCurrent(rec);
+      if(cur.date || cur.km){
+        rows.push({date: cur.date, km: cur.km, name: it.name, current: true, label: cur.label});
+      }
+      rec.history.forEach(function(h){
+        var rh = resolveEntry(h);
+        rows.push({date: rh.date, km: rh.km, name: it.name, current: false, label: rh.label});
+      });
+    });
+    rows.sort(function(a,b){
+      return (b.date || '').localeCompare(a.date || '');
+    });
+    var table = document.getElementById('historyTable');
+    if(rows.length === 0){
+      table.innerHTML = '<tr><td style="color:var(--text-dim);">Aún no hay registros.</td></tr>';
+      return;
+    }
+    var html = '<tr><th>Fecha</th><th>Ítem</th><th>Km</th></tr>';
+    rows.forEach(function(r){
+      html += '<tr><td>' + (r.date ? fmtDate(new Date(r.date + 'T00:00:00')) : '—') + '</td><td>' + r.name + (r.current ? ' <span style="color:var(--ok);">(vigente' + (r.label ? ' — ' + r.label : '') + ')</span>' : '') + '</td><td>' + (r.km ? Number(r.km).toLocaleString('es-CR') : '—') + '</td></tr>';
+    });
+    table.innerHTML = html;
+  }
+
+  var servicesBox = document.getElementById('servicesBox');
+  function renderServices(){
+    servicesBox.innerHTML = SERVICE_ORDER.map(function(sid){
+      var s = state.services[sid];
+      return '<div class="service-row">' +
+        '<div class="service-label">' + SERVICE_LABELS[sid] + '</div>' +
+        '<div class="service-inputs">' +
+          '<input type="date" class="svc-input" data-sid="' + sid + '" data-field="date" value="' + s.date + '">' +
+          '<input type="number" class="svc-input" data-sid="' + sid + '" data-field="km" value="' + s.km + '" placeholder="km">' +
+        '</div>' +
+      '</div>';
+    }).join('');
+    servicesBox.querySelectorAll('.svc-input').forEach(function(inp){
+      inp.addEventListener('input', function(){
+        var sid = inp.getAttribute('data-sid');
+        var field = inp.getAttribute('data-field');
+        var selStart, selEnd;
+        try{ selStart = inp.selectionStart; selEnd = inp.selectionEnd; }catch(e){ selStart = selEnd = null; }
+        state.services[sid][field] = inp.value;
+        saveState(state);
+        render();
+        var again = servicesBox.querySelector('input[data-sid="' + sid + '"][data-field="' + field + '"]');
+        if(again){
+          again.focus();
+          if(selStart !== null){ try{ again.setSelectionRange(selStart, selEnd); }catch(e){} }
+        }
+      });
+    });
+  }
+
+  function todayISO(){
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+
+  function undoLastChange(id){
+    var rec = state.items[id];
+    if(rec.history.length === 0) return;
+    var prev = rec.history.shift();
+    rec.currentServiceId = prev.serviceId || null;
+    rec.lastDate = prev.date || '';
+    rec.lastKm = prev.km || '';
+    saveState(state);
+    render();
+  }
+  window.undoLastChange = undoLastChange;
+
+  function markItemDone(id){
+    var rec = state.items[id];
+    var cur = resolveCurrent(rec);
+    if(cur.date || cur.km){
+      rec.history.unshift(cur.serviceId ? { serviceId: cur.serviceId } : { date: cur.date, km: cur.km });
+    }
+    rec.currentServiceId = null;
+    var kmActual = state.kmActual;
+    rec.lastKm = (kmActual !== '' && kmActual !== undefined && !isNaN(parseFloat(kmActual))) ? String(kmActual) : cur.km;
+    rec.lastDate = todayISO();
+    saveState(state);
+    render();
+  }
+  window.markItemDone = markItemDone;
+
+  function computeItem(it){
+    var rec = state.items[it.id];
+    var cur = resolveCurrent(rec);
+    var lastKm = parseFloat(cur.km);
+    var kmActual = parseFloat(state.kmActual);
+    var hasKmData = !isNaN(lastKm) && !isNaN(kmActual);
+
+    var nextKm = (it.km && !isNaN(lastKm)) ? lastKm + it.km : null;
+    var nextDate = (it.months && cur.date) ? addMonths(cur.date, it.months) : null;
+
+    var kmRemaining = (nextKm !== null && !isNaN(kmActual)) ? nextKm - kmActual : null;
+    var daysRemaining = (nextDate !== null) ? daysBetween(today, nextDate) : null;
+
+    // umbral de "próximo": 300 km o 21 días para lo continuo, 500 km / 30 días para lo mayor
+    var kmBuffer = it.km && it.km <= 1000 ? 150 : 500;
+    var dayBuffer = 30;
+
+    var status = 'ok';
+    var reasons = [];
+
+    if(kmRemaining !== null){
+      if(kmRemaining <= 0){ status = 'danger'; reasons.push('vencido por km'); }
+      else if(kmRemaining <= kmBuffer && status !== 'danger'){ status = 'warn'; }
+    }
+    if(daysRemaining !== null){
+      if(daysRemaining <= 0){ status = 'danger'; reasons.push('vencido por fecha'); }
+      else if(daysRemaining <= dayBuffer && status !== 'danger'){ status = 'warn'; }
+    }
+    if(nextKm === null && nextDate === null){ status = 'ok'; }
+    if(nextKm !== null && isNaN(kmActual)){ /* no podemos saber, no penalizar */ }
+
+    return { it:it, rec:rec, cur:cur, nextKm:nextKm, nextDate:nextDate, kmRemaining:kmRemaining, daysRemaining:daysRemaining, status:status, hasKmData:hasKmData };
+  }
+
+  function fmtDate(d){
+    return d.toLocaleDateString('es-CR', {day:'2-digit', month:'short', year:'numeric'});
+  }
+
+  function statusLine(c){
+    var parts = [];
+    if(c.nextKm !== null){
+      if(c.kmRemaining !== null){
+        parts.push(c.kmRemaining <= 0 ? ('vencido hace ' + Math.abs(Math.round(c.kmRemaining)) + ' km') : ('faltan ' + Math.round(c.kmRemaining) + ' km'));
+      } else {
+        parts.push('próximo a los ' + c.nextKm.toLocaleString('es-CR') + ' km');
+      }
+    }
+    if(c.nextDate !== null){
+      if(c.daysRemaining <= 0){
+        parts.push('vencido desde el ' + fmtDate(c.nextDate));
+      } else {
+        parts.push('antes del ' + fmtDate(c.nextDate) + ' (' + c.daysRemaining + ' días)');
+      }
+    }
+    if(parts.length === 0) return 'Completa los datos para calcular.';
+    return parts.join(' · ');
+  }
+
+  function renderDashTarget(){
+    var kmActual = parseFloat(state.kmActual);
+    var kmRemaining = !isNaN(kmActual) ? (DASH_TARGET_KM - kmActual) : null;
+    var targetDateObj = new Date(DASH_TARGET_DATE + 'T00:00:00');
+    var daysRemaining = daysBetween(today, targetDateObj);
+
+    var status = 'ok';
+    if((kmRemaining !== null && kmRemaining <= 0) || daysRemaining <= 0) status = 'danger';
+    else if((kmRemaining !== null && kmRemaining <= 500) || daysRemaining <= 14) status = 'warn';
+
+    var parts = [];
+    if(kmRemaining !== null){
+      parts.push(kmRemaining <= 0 ? ('vencido hace ' + Math.abs(Math.round(kmRemaining)) + ' km') : ('faltan ' + Math.round(kmRemaining) + ' km (meta: ' + DASH_TARGET_KM.toLocaleString('es-CR') + ' km)'));
+    }
+    parts.push(daysRemaining <= 0 ? ('vencido desde el ' + fmtDate(targetDateObj)) : ('antes del ' + fmtDate(targetDateObj) + ' (' + daysRemaining + ' días)'));
+
+    var panel = document.getElementById('dashPanel');
+    panel.style.borderLeft = '3px solid var(--' + (status==='danger'?'danger':status==='warn'?'warn':'ok') + ')';
+    document.getElementById('dashStatus').innerHTML =
+      '<span class="badge ' + status + '" style="margin-right:8px;">' + (status==='danger'?'Vencido':status==='warn'?'Próximo':'Al día') + '</span>' +
+      parts.join(' · ') +
+      '<div style="color:var(--text-dim); font-size:.75rem; margin-top:6px;">Según el propio tablero de la moto, leído el 19-set-2026 en 8.989 km ("Revisión en: 4.219 km / 61 días").</div>';
+  }
+
+  function render(){
+    renderDashTarget();
+    if(historyPanel.style.display === 'block'){
+      renderServices();
+      renderHistoryPanel();
+    }
+    var computed = ITEMS.map(computeItem);
+    var danger = computed.filter(function(c){return c.status==='danger';});
+    var warn = computed.filter(function(c){return c.status==='warn';});
+    var ok = computed.filter(function(c){return c.status==='ok';});
+
+    document.getElementById('countDanger').textContent = danger.length;
+    document.getElementById('countWarn').textContent = warn.length;
+    document.getElementById('countOk').textContent = ok.length;
+
+    listsEl.innerHTML = '';
+    [
+      {title:'Vencidos', list:danger},
+      {title:'Próximos', list:warn},
+      {title:'Al día', list:ok}
+    ].forEach(function(group){
+      if(group.list.length === 0) return;
+      var h = document.createElement('div');
+      h.className = 'group-title';
+      h.textContent = group.title;
+      listsEl.appendChild(h);
+      group.list.forEach(function(c){
+        listsEl.appendChild(renderItem(c));
+      });
+    });
+  }
+
+  function renderItem(c){
+    var it = c.it, rec = c.rec, cur = c.cur;
+    var div = document.createElement('div');
+    div.className = 'item ' + c.status;
+
+    var intervalStr = [];
+    if(it.km) intervalStr.push('cada ' + it.km.toLocaleString('es-CR') + ' km');
+    if(it.months) intervalStr.push('cada ' + it.months + ' meses');
+    intervalStr = intervalStr.join(' / ') || '—';
+
+    var badgeText = c.status === 'danger' ? 'Vencido' : (c.status === 'warn' ? 'Próximo' : 'Al día');
+
+    var currentRow = (cur.date || cur.km) ?
+      '<div class="hist-row"><strong>' + (cur.date ? fmtDate(new Date(cur.date + 'T00:00:00')) : '—') + (cur.km ? ' · ' + Number(cur.km).toLocaleString('es-CR') + ' km' : '') + '</strong> <span style="color:var(--ok);">(vigente' + (cur.label ? ' — ' + cur.label : '') + ')</span></div>'
+      : '';
+    var historyRows = currentRow + rec.history.map(function(h, idx){
+      var rh = resolveEntry(h);
+      var lockedNote = rh.serviceId ? ' <span style="color:var(--text-dim); font-size:.7rem;">(' + rh.label + ' — editar arriba en "Revisiones de agencia")</span>' : '';
+      return '<div class="hist-row hist-edit-row">' +
+        '<input type="date" class="hist-input" data-id="' + it.id + '" data-idx="' + idx + '" data-field="histDate" value="' + (rh.date || '') + '"' + (rh.serviceId ? ' disabled' : '') + '>' +
+        '<input type="number" class="hist-input" data-id="' + it.id + '" data-idx="' + idx + '" data-field="histKm" value="' + (rh.km || '') + '" placeholder="km"' + (rh.serviceId ? ' disabled' : '') + '>' +
+        lockedNote +
+        '<button class="btn-del-hist" data-id="' + it.id + '" data-idx="' + idx + '" title="Eliminar registro">🗑</button>' +
+      '</div>';
+    }).join('');
+
+    div.innerHTML =
+      '<div class="item-top">' +
+        '<div class="item-name">' + it.name + '</div>' +
+        '<div class="badge ' + c.status + '">' + badgeText + '</div>' +
+      '</div>' +
+      '<div class="item-meta">' + it.action + ' — ' + intervalStr + '</div>' +
+      '<div class="item-status">' + statusLine(c) + '</div>' +
+      '<div class="item-actions">' +
+        '<button class="btn-done" data-id="' + it.id + '">✓ Marcar hecho hoy</button>' +
+        (rec.history.length ? '<button class="btn-undo" data-id="' + it.id + '">↩ Deshacer último cambio</button>' : '') +
+        '<button class="btn-hist" data-id="' + it.id + '">Historial' + (rec.history.length ? ' (' + rec.history.length + ')' : '') + '</button>' +
+      '</div>' +
+      '<div class="item-history" id="hist-' + it.id + '" style="display:none;">' + (historyRows || '<div class="hist-row">Sin registros previos.</div>') + '</div>' +
+      '<div class="item-edit">' +
+        (it.km !== null ?
+          '<div class="field"><label>Último km' + (it.months? ' de reemplazo':'') + (cur.serviceId ? ' (vinculado a ' + cur.label + ')' : '') + '</label><input type="number" data-field="lastKm" data-id="' + it.id + '" value="' + (cur.km || '') + '" placeholder="km"></div>'
+          : '') +
+        (it.months !== null ?
+          '<div class="field"><label>Última fecha' + (cur.serviceId ? ' (vinculada a ' + cur.label + ')' : '') + '</label><input type="date" data-field="lastDate" data-id="' + it.id + '" value="' + (cur.date || '') + '"></div>'
+          : '') +
+      '</div>';
+
+    div.querySelector('.btn-done').addEventListener('click', function(){
+      markItemDone(it.id);
+    });
+    var undoBtn = div.querySelector('.btn-undo');
+    if(undoBtn){
+      undoBtn.addEventListener('click', function(){
+        undoLastChange(it.id);
+      });
+    }
+    var histBtn = div.querySelector('.btn-hist');
+    if(histBtn){
+      histBtn.addEventListener('click', function(){
+        var box = div.querySelector('.item-history');
+        box.style.display = box.style.display === 'none' ? 'block' : 'none';
+      });
+    }
+    div.querySelectorAll('.btn-del-hist').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var id = btn.getAttribute('data-id');
+        var idx = parseInt(btn.getAttribute('data-idx'), 10);
+        state.items[id].history.splice(idx, 1);
+        saveState(state);
+        render();
+      });
+    });
+    div.querySelectorAll('.hist-input').forEach(function(inp){
+      inp.addEventListener('input', function(){
+        var id = inp.getAttribute('data-id');
+        var idx = parseInt(inp.getAttribute('data-idx'), 10);
+        var field = inp.getAttribute('data-field');
+        var selStart, selEnd;
+        try{ selStart = inp.selectionStart; selEnd = inp.selectionEnd; }catch(e){ selStart = selEnd = null; }
+        if(field === 'histDate') state.items[id].history[idx].date = inp.value;
+        else state.items[id].history[idx].km = inp.value;
+        saveState(state);
+        render();
+        var box = document.getElementById('hist-' + id);
+        if(box) box.style.display = 'block';
+        var again = listsEl.querySelector('input[data-id="' + id + '"][data-idx="' + idx + '"][data-field="' + field + '"]');
+        if(again){
+          again.focus();
+          if(selStart !== null){ try{ again.setSelectionRange(selStart, selEnd); }catch(e){} }
+        }
+      });
+    });
+
+    div.querySelectorAll('.item-edit input').forEach(function(inp){
+      inp.addEventListener('input', function(){
+        var id = inp.getAttribute('data-id');
+        var field = inp.getAttribute('data-field');
+        var selStart, selEnd;
+        try{ selStart = inp.selectionStart; selEnd = inp.selectionEnd; }catch(e){ selStart = selEnd = null; }
+        var rec2 = state.items[id];
+        var resolved = resolveCurrent(rec2);
+        rec2.lastDate = resolved.date;
+        rec2.lastKm = resolved.km;
+        rec2.currentServiceId = null; // se desvincula de la revisión al editarlo directamente
+        rec2[field] = inp.value;
+        saveState(state);
+        render();
+        var again = listsEl.querySelector('input[data-id="' + id + '"][data-field="' + field + '"]');
+        if(again){
+          again.focus();
+          if(selStart !== null){ try{ again.setSelectionRange(selStart, selEnd); }catch(e){} }
+        }
+      });
+    });
+
+    return div;
+  }
+
+  render();
+
+  var exportLink = document.getElementById('exportLink');
+  var importLink = document.getElementById('importLink');
+  var importFile = document.getElementById('importFile');
+
+  exportLink.addEventListener('click', function(ev){
+    ev.preventDefault();
+    var json = JSON.stringify(state, null, 2);
+    var d = new Date();
+    var filename = 'himalayan-respaldo-' + d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0') + '.json';
+
+    function fallbackDownload(){
+      try{
+        var blob = new Blob([json], {type:'application/json'});
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url; a.download = filename;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+      }catch(e){
+        alert('No se pudo generar el archivo de respaldo en este navegador.');
+      }
+    }
+
+    if(window.claude && typeof window.claude.use === 'function'){
+      window.claude.use('downloads').then(function(dl){
+        if(!dl){ fallbackDownload(); return; }
+        dl.save({ filename: filename, data: new Blob([json], {type:'application/json'}) }).catch(function(){ fallbackDownload(); });
+      }).catch(fallbackDownload);
+    } else {
+      fallbackDownload();
+    }
+  });
+
+  importLink.addEventListener('click', function(ev){
+    ev.preventDefault();
+    importFile.click();
+  });
+
+  importFile.addEventListener('change', function(){
+    var file = importFile.files[0];
+    if(!file) return;
+    var reader = new FileReader();
+    reader.onload = function(){
+      var parsed;
+      try{ parsed = JSON.parse(reader.result); }catch(e){
+        alert('El archivo no es un respaldo válido (JSON dañado o de otro tipo).');
+        importFile.value = '';
+        return;
+      }
+      if(!parsed || typeof parsed !== 'object' || (!parsed.items && !parsed.services)){
+        alert('El archivo no parece un respaldo de esta bitácora.');
+        importFile.value = '';
+        return;
+      }
+      if(!confirm('Esto va a REEMPLAZAR todos los datos actuales (km, revisiones, historial) con los del archivo. ¿Continuar?')){
+        importFile.value = '';
+        return;
+      }
+      state = parsed;
+      normalizeState();
+      saveState(state);
+      render();
+      importFile.value = '';
+      alert('Respaldo importado correctamente.');
+    };
+    reader.readAsText(file);
+  });
+
+  var syncStatusEl = document.getElementById('syncStatus');
+  if(window.claude && typeof window.claude.use === 'function'){
+    window.claude.use('db').then(function(db){
+      if(!db){
+        syncStatusEl.textContent = '📴 Solo en este dispositivo (sin cuenta conectada)';
+        return;
+      }
+      dbNS = db;
+      dbNS.doc(DB_DOC_PATH).onSnapshot(function(snap){
+        if(snap.exists){
+          var remote = snap.data();
+          if(remote && !snap.metadata.hasPendingWrites){
+            state = remote;
+            normalizeState();
+            render();
+          }
+          syncStatusEl.textContent = '☁️ Sincronizado con tu cuenta';
+        } else {
+          // no hay nada en la nube todavía: sembrar con lo que ya está en este dispositivo
+          dbNS.doc(DB_DOC_PATH).set(state).catch(function(){});
+          syncStatusEl.textContent = '☁️ Sincronizado con tu cuenta';
+        }
+      }, function(){
+        syncStatusEl.textContent = '📴 Solo en este dispositivo (sin cuenta conectada)';
+      });
+    }).catch(function(){
+      syncStatusEl.textContent = '📴 Solo en este dispositivo (sin cuenta conectada)';
+    });
+  } else {
+    syncStatusEl.textContent = '📴 Solo en este dispositivo';
+  }
+})();
+</script>
+</body>
+</html>
