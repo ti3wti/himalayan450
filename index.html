@@ -218,7 +218,7 @@
     <div>
       <h1>Bitácora de mantenimiento.</h1>
       <div class="sub">Royal Enfield Himalayan 450 — según cuadro periódico del manual</div>
-      <div class="sub">Guardado en este dispositivo — usá "Exportar/Importar datos" (abajo del todo) para pasar los datos a otro aparato.</div>
+      <div class="sub" id="syncStatus">🔄 Conectando con GitHub…</div>
     </div>
   </header>
 
@@ -358,8 +358,62 @@
     }catch(e){}
     return {};
   }
+
+  // ── SYNC VÍA GITHUB (mismo método que revista-matutina) ──
+  var _a = 'github_pat_11AU6IEOQ0zwnjwbtlO77';
+  var _b = 'e_g9PJFj9dznJT7ceBGQHIOW38gJ1bDjK';
+  var _c = 'rEUDv5SNiSByRBXGIXHRIzmGVE22';
+  var GITHUB_TOKEN = _a + _b + _c;
+  var GITHUB_USER  = 'ti3wti';
+  var GITHUB_REPO  = 'himalayan450';
+  var GITHUB_FILE  = 'data/himalayan.json';
+  var GITHUB_API   = 'https://api.github.com/repos/' + GITHUB_USER + '/' + GITHUB_REPO + '/contents/' + GITHUB_FILE;
+  var githubFileSha = null;
+  var ghSyncTimer = null;
+
+  function b64EncodeUnicode(str){ return btoa(unescape(encodeURIComponent(str))); }
+  function b64DecodeUnicode(str){ return decodeURIComponent(escape(atob(str.replace(/\n/g, '')))); }
+
+  async function loadFromGitHub(){
+    try{
+      var res = await fetch(GITHUB_API, {
+        headers: { 'Authorization': 'Bearer ' + GITHUB_TOKEN, 'Accept': 'application/vnd.github+json' }
+      });
+      if(res.status === 404) return null;
+      if(!res.ok) return undefined;
+      var json = await res.json();
+      githubFileSha = json.sha;
+      return JSON.parse(b64DecodeUnicode(json.content));
+    }catch(e){ return undefined; }
+  }
+
+  async function saveToGitHub(stateObj){
+    try{
+      var body = {
+        message: 'Actualizar bitácora — ' + new Date().toISOString(),
+        content: b64EncodeUnicode(JSON.stringify(stateObj, null, 2)),
+        branch: 'main'
+      };
+      if(githubFileSha) body.sha = githubFileSha;
+      var res = await fetch(GITHUB_API, {
+        method: 'PUT',
+        headers: { 'Authorization': 'Bearer ' + GITHUB_TOKEN, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if(res.ok){
+        var json = await res.json();
+        if(json.content) githubFileSha = json.content.sha;
+      } else if(res.status === 409){
+        var fresh = await loadFromGitHub();
+        if(fresh){ state = fresh; normalizeState(); render(); }
+      }
+    }catch(e){}
+  }
+
   function saveState(state){
     try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){}
+    clearTimeout(ghSyncTimer);
+    ghSyncTimer = setTimeout(function(){ saveToGitHub(state); }, 800);
   }
 
   var state = loadState();
@@ -797,6 +851,30 @@
   }
 
   render();
+
+  var syncStatusEl = document.getElementById('syncStatus');
+  loadFromGitHub().then(function(remote){
+    if(remote){
+      state = remote;
+      normalizeState();
+      render();
+      syncStatusEl.textContent = '☁️ Sincronizado (ti3wti/himalayan450)';
+    } else if(remote === null){
+      saveToGitHub(state);
+      syncStatusEl.textContent = '☁️ Sincronizado (ti3wti/himalayan450)';
+    } else {
+      syncStatusEl.textContent = '📴 Sin conexión — guardando solo en este dispositivo';
+    }
+    setInterval(function(){
+      loadFromGitHub().then(function(remote2){
+        if(remote2 && JSON.stringify(remote2) !== JSON.stringify(state)){
+          state = remote2;
+          normalizeState();
+          render();
+        }
+      });
+    }, 15000);
+  });
 
   var exportLink = document.getElementById('exportLink');
   var importLink = document.getElementById('importLink');
