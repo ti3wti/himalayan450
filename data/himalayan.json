@@ -1,0 +1,223 @@
+{
+  "kmActual": "8995",
+  "services": {
+    "rev1": {
+      "date": "2024-10-04",
+      "km": "500"
+    },
+    "rev2": {
+      "date": "2025-04-30",
+      "km": "5000"
+    },
+    "rev3": {
+      "date": "2026-05-22",
+      "km": "7900"
+    }
+  },
+  "items": {
+    "oil_level": {
+      "currentServiceId": null,
+      "lastKm": "8995",
+      "lastDate": "2026-09-19",
+      "history": [
+        {
+          "serviceId": "rev3"
+        },
+        {
+          "serviceId": "rev2"
+        },
+        {
+          "serviceId": "rev1"
+        }
+      ]
+    },
+    "oil_change": {
+      "currentServiceId": "rev3",
+      "lastKm": "",
+      "lastDate": "2026-05-22",
+      "history": [
+        {
+          "serviceId": "rev2"
+        },
+        {
+          "serviceId": "rev1"
+        }
+      ]
+    },
+    "air_filter": {
+      "currentServiceId": "rev3",
+      "lastKm": "",
+      "lastDate": "2026-05-22",
+      "history": [
+        {
+          "serviceId": "rev2"
+        },
+        {
+          "serviceId": "rev1"
+        }
+      ]
+    },
+    "valve": {
+      "currentServiceId": "rev3",
+      "lastKm": "",
+      "lastDate": "2026-05-22",
+      "history": [
+        {
+          "serviceId": "rev2"
+        },
+        {
+          "serviceId": "rev1"
+        }
+      ]
+    },
+    "plug": {
+      "currentServiceId": "rev3",
+      "lastKm": "",
+      "lastDate": "2026-05-22",
+      "history": [
+        {
+          "serviceId": "rev2"
+        },
+        {
+          "serviceId": "rev1"
+        }
+      ]
+    },
+    "throttle": {
+      "currentServiceId": "rev3",
+      "lastKm": "",
+      "lastDate": "2026-05-22",
+      "history": [
+        {
+          "serviceId": "rev2"
+        },
+        {
+          "serviceId": "rev1"
+        }
+      ]
+    },
+    "coolant": {
+      "currentServiceId": "rev3",
+      "lastKm": "",
+      "lastDate": "2026-05-22",
+      "history": [
+        {
+          "serviceId": "rev2"
+        },
+        {
+          "serviceId": "rev1"
+        }
+      ]
+    },
+    "brake_fluid": {
+      "currentServiceId": "rev3",
+      "lastKm": "",
+      "lastDate": "2026-05-22",
+      "history": [
+        {
+          "serviceId": "rev2"
+        },
+        {
+          "serviceId": "rev1"
+        }
+      ]
+    },
+    "brake_pads": {
+      "currentServiceId": "rev3",
+      "lastKm": "",
+      "lastDate": "2026-05-22",
+      "history": [
+        {
+          "serviceId": "rev2"
+        },
+        {
+          "serviceId": "rev1"
+        }
+      ]
+    },
+    "chain": {
+      "currentServiceId": null,
+      "lastKm": "8995",
+      "lastDate": "2026-09-19",
+      "history": [
+        {
+          "serviceId": "rev3"
+        },
+        {
+          "serviceId": "rev2"
+        },
+        {
+          "serviceId": "rev1"
+        }
+      ]
+    },
+    "clutch": {
+      "currentServiceId": null,
+      "lastKm": "8995",
+      "lastDate": "2026-09-19",
+      "history": [
+        {
+          "serviceId": "rev3"
+        },
+        {
+          "serviceId": "rev2"
+        },
+        {
+          "serviceId": "rev1"
+        }
+      ]
+    },
+    "lever_pivots": {
+      "currentServiceId": "rev3",
+      "lastKm": "",
+      "lastDate": "",
+      "history": [
+        {
+          "serviceId": "rev2"
+        },
+        {
+          "serviceId": "rev1"
+        }
+      ]
+    },
+    "tyres": {
+      "currentServiceId": "rev3",
+      "lastKm": "",
+      "lastDate": "2026-05-22",
+      "history": [
+        {
+          "serviceId": "rev2"
+        },
+        {
+          "serviceId": "rev1"
+        }
+      ]
+    },
+    "battery": {
+      "currentServiceId": "rev3",
+      "lastKm": "",
+      "lastDate": "2026-05-22",
+      "history": [
+        {
+          "serviceId": "rev2"
+        },
+        {
+          "serviceId": "rev1"
+        }
+      ]
+    },
+    "general": {
+      "currentServiceId": "rev3",
+      "lastKm": "",
+      "lastDate": "2026-05-22",
+      "history": [
+        {
+          "serviceId": "rev2"
+        },
+        {
+          "serviceId": "rev1"
+        }
+      ]
+    }
+  }
+}
