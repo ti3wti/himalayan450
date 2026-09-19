@@ -1,5 +1,5 @@
 {
-  "kmActual": "8990",
+  "kmActual": "8995",
   "services": {
     "rev1": {
       "date": "2024-10-04",
@@ -17,7 +17,7 @@
   "items": {
     "oil_level": {
       "currentServiceId": null,
-      "lastKm": "8990",
+      "lastKm": "8995",
       "lastDate": "2026-09-19",
       "history": [
         {
@@ -136,13 +136,10 @@
       ]
     },
     "chain": {
-      "currentServiceId": null,
-      "lastKm": "8990",
-      "lastDate": "2026-09-19",
+      "currentServiceId": "rev3",
+      "lastKm": "",
+      "lastDate": "",
       "history": [
-        {
-          "serviceId": "rev3"
-        },
         {
           "serviceId": "rev2"
         },
@@ -152,13 +149,10 @@
       ]
     },
     "clutch": {
-      "currentServiceId": null,
-      "lastKm": "8990",
-      "lastDate": "2026-09-19",
+      "currentServiceId": "rev3",
+      "lastKm": "",
+      "lastDate": "",
       "history": [
-        {
-          "serviceId": "rev3"
-        },
         {
           "serviceId": "rev2"
         },
