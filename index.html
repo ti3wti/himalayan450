@@ -492,7 +492,7 @@
     });
   }
   normalizeState();
-  saveState(state);
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){}
 
   function resolveEntryDate(entry){
     if(entry.serviceId && state.services[entry.serviceId]) return state.services[entry.serviceId].date || '';
@@ -876,6 +876,7 @@
     if(remote){
       state = remote;
       normalizeState();
+      try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){}
       render();
       syncStatusEl.textContent = '☁️ Sincronizado (ti3wti/himalayan450)';
     } else if(remote === null){
@@ -891,6 +892,7 @@
         if(remote2 && JSON.stringify(remote2) !== JSON.stringify(state)){
           state = remote2;
           normalizeState();
+          try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){}
           render();
         }
       });
