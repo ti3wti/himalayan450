@@ -303,7 +303,7 @@
   // interval.km: km entre servicios (null = solo por fecha)
   // interval.months: meses entre servicios (null = solo por km)
   var ITEMS = [
-    {id:'oil_level', name:'Nivel de aceite de motor', action:'Revisar y rellenar', km:1000, months:null},
+    {id:'oil_level', name:'Nivel de aceite de motor', action:'Revisar y rellenar', km:1000, months:null, spec:'10W-40, API SN, JASO MA2, semisintético'},
     {id:'oil_change', name:'Aceite y filtro de motor', action:'Reemplazar', km:10000, months:12},
     {id:'air_filter', name:'Filtro de aire', action:'Limpiar / reemplazar', km:10000, months:12},
     {id:'valve', name:'Holgura de válvulas (admisión/escape)', action:'Revisar y ajustar', km:20000, months:24},
@@ -312,8 +312,8 @@
     {id:'coolant', name:'Refrigerante', action:'Reemplazar', km:30000, months:36},
     {id:'brake_fluid', name:'Líquido de frenos (del. y tras.)', action:'Reemplazar', km:20000, months:24},
     {id:'brake_pads', name:'Pastillas de freno', action:'Inspeccionar desgaste', km:5000, months:6},
-    {id:'chain', name:'Cadena de transmisión', action:'Limpiar, lubricar y ajustar', km:500, months:null},
-    {id:'clutch', name:'Juego libre del embrague', action:'Ajustar', km:1000, months:null},
+    {id:'chain', name:'Cadena de transmisión', action:'Limpiar, lubricar y ajustar', km:500, months:null, spec:'Holgura (juego libre): 35–40 mm'},
+    {id:'clutch', name:'Juego libre del embrague', action:'Ajustar', km:1000, months:null, spec:'9–11 mm en el extremo de la palanca'},
     {id:'lever_pivots', name:'Pivotes de palancas (freno/embrague)', action:'Lubricar', km:1000, months:null},
     {id:'tyres', name:'Neumáticos', action:'Revisar desgaste y presión', km:5000, months:6},
     {id:'battery', name:'Terminales de batería', action:'Revisar / vaselina', km:5000, months:6},
@@ -763,6 +763,7 @@
         '<div class="badge ' + c.status + '">' + badgeText + '</div>' +
       '</div>' +
       '<div class="item-meta">' + it.action + ' — ' + intervalStr + '</div>' +
+      (it.spec ? '<div class="item-meta" style="color:var(--accent);">📋 ' + it.spec + '</div>' : '') +
       '<div class="item-status">' + statusLine(c) + '</div>' +
       '<div class="item-actions">' +
         '<button class="btn-done" data-id="' + it.id + '">✓ Marcar hecho hoy</button>' +
