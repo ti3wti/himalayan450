@@ -48,6 +48,15 @@
     letter-spacing:.01em; margin:0; line-height:1.15;
   }
   .sub{color:var(--text-dim); font-size:.86rem; margin-top:3px;}
+  .sub-row{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:3px;}
+  .sub-row .sub{margin-top:0;}
+  .btn-sync{
+    font-family:inherit; font-size:.78rem; font-weight:600; cursor:pointer;
+    border-radius:7px; padding:6px 12px; border:1px solid var(--accent);
+    background:transparent; color:var(--accent); white-space:nowrap;
+  }
+  .btn-sync:disabled{opacity:.5; cursor:default;}
+  .btn-sync:hover:not(:disabled){background:rgba(201,162,39,.12);}
 
   .panel{
     background:var(--bg-elev); border:1px solid var(--border);
@@ -221,7 +230,10 @@
     <div>
       <h1>Bitácora de mantenimiento</h1>
       <div class="sub">Royal Enfield Himalayan 450 — según cuadro periódico del manual</div>
-      <div class="sub" id="syncStatus">🔄 Conectando con GitHub…</div>
+      <div class="sub-row">
+        <div class="sub" id="syncStatus">🔄 Cargando…</div>
+        <button id="syncBtn" class="btn-sync">☁️ Sincronizar</button>
+      </div>
     </div>
   </header>
 
@@ -372,9 +384,6 @@
   var GITHUB_FILE  = 'data/himalayan.json';
   var GITHUB_API   = 'https://api.github.com/repos/' + GITHUB_USER + '/' + GITHUB_REPO + '/contents/' + GITHUB_FILE;
   var githubFileSha = null;
-  var ghSyncTimer = null;
-  var pendingWrites = false;
-  var lastWriteTime = 0;
 
   function b64EncodeUnicode(str){ return btoa(unescape(encodeURIComponent(str))); }
   function b64DecodeUnicode(str){ return decodeURIComponent(escape(atob(str.replace(/\n/g, '')))); }
@@ -404,16 +413,13 @@
       var res = await fetch(GITHUB_API, {
         method: 'PUT',
         headers: { 'Authorization': 'Bearer ' + GITHUB_TOKEN, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-        keepalive: true
+        body: JSON.stringify(body)
       });
       if(res.ok){
         var json = await res.json();
         if(json.content) githubFileSha = json.content.sha;
         return true;
       } else if(res.status === 409 && attempt < 3){
-        // Alguien más escribió justo antes: refrescamos el sha y reintentamos con NUESTRO dato,
-        // nunca lo tiramos — el cambio real del usuario no se descarta.
         await loadFromGitHub();
         return saveToGitHub(stateObj, attempt + 1);
       }
@@ -421,43 +427,10 @@
     return false;
   }
 
-  // Encola escrituras: nunca dos al mismo tiempo. Si llega una nueva mientras
-  // la anterior sigue en vuelo, se guarda como "la más reciente" y se manda
-  // apenas la actual termine — así el último valor real siempre gana.
-  var writeInFlight = false;
-  var latestQueuedState = null;
-
-  function queueGithubWrite(stateObj){
-    latestQueuedState = stateObj;
-    if(writeInFlight) return;
-    runQueuedWrite();
-  }
-
-  async function runQueuedWrite(){
-    if(latestQueuedState === null){ pendingWrites = false; return; }
-    writeInFlight = true;
-    var toSend = latestQueuedState;
-    latestQueuedState = null;
-    await saveToGitHub(toSend);
-    lastWriteTime = Date.now();
-    writeInFlight = false;
-    if(latestQueuedState !== null) runQueuedWrite();
-    else pendingWrites = false;
-  }
-
+  // Guardado: SOLO local, automático. Nada corriendo de fondo, nada peleando con otro aparato.
   function saveState(state){
     try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){}
-    clearTimeout(ghSyncTimer);
-    pendingWrites = true; // marcado ya desde ahora, para que el sondeo no pise mientras esperamos
-    ghSyncTimer = setTimeout(function(){ queueGithubWrite(state); }, 400);
   }
-
-  document.addEventListener('visibilitychange', function(){
-    if(document.hidden && ghSyncTimer){
-      clearTimeout(ghSyncTimer);
-      queueGithubWrite(state);
-    }
-  });
 
   var state = loadState();
   if(state.kmActual === undefined) state.kmActual = 8989;
@@ -894,33 +867,67 @@
   render();
 
   var syncStatusEl = document.getElementById('syncStatus');
-  loadFromGitHub().then(function(remote){
-    if(remote){
-      state = remote;
-      normalizeState();
-      try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){}
-      if(document.activeElement !== kmActualInput) kmActualInput.value = state.kmActual;
-      render();
-      syncStatusEl.textContent = '☁️ Sincronizado (ti3wti/himalayan450)';
-    } else if(remote === null){
-      queueGithubWrite(state);
-      syncStatusEl.textContent = '☁️ Sincronizado (ti3wti/himalayan450)';
-    } else {
-      syncStatusEl.textContent = '📴 Sin conexión — guardando solo en este dispositivo';
+  var syncBtn = document.getElementById('syncBtn');
+
+  function applyRemote(remote){
+    state = remote;
+    normalizeState();
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){}
+    if(document.activeElement !== kmActualInput) kmActualInput.value = state.kmActual;
+    render();
+  }
+
+  async function syncNow(){
+    syncBtn.disabled = true;
+    syncStatusEl.textContent = '🔄 Sincronizando…';
+    var remote = await loadFromGitHub();
+
+    if(remote === undefined){
+      syncStatusEl.textContent = '❌ No se pudo conectar a GitHub (revisá tu internet)';
+      syncBtn.disabled = false;
+      return;
     }
-    setInterval(function(){
-      if(pendingWrites || (Date.now() - lastWriteTime) < 3000) return; // guardado en camino o recién hecho: no pisarlo
-      loadFromGitHub().then(function(remote2){
-        if(pendingWrites || (Date.now() - lastWriteTime) < 3000) return;
-        if(remote2 && JSON.stringify(remote2) !== JSON.stringify(state)){
-          state = remote2;
-          normalizeState();
-          try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){}
-          if(document.activeElement !== kmActualInput) kmActualInput.value = state.kmActual;
-          render();
-        }
-      });
-    }, 2000);
+
+    if(remote === null){
+      // Todavía no existe el archivo en el repo: esta es la primera subida.
+      var ok1 = await saveToGitHub(state);
+      syncStatusEl.textContent = ok1 ? '☁️ Subido por primera vez' : '❌ No se pudo subir';
+      syncBtn.disabled = false;
+      return;
+    }
+
+    if(JSON.stringify(remote) === JSON.stringify(state)){
+      syncStatusEl.textContent = '☁️ Ya estabas al día';
+      syncBtn.disabled = false;
+      return;
+    }
+
+    // Hay diferencias: el usuario decide, sin adivinar ni mezclar solo.
+    var useRemote = await showConfirm('Hay datos distintos entre este aparato y la nube.\n\n"Continuar" = traer los de la NUBE aquí (se pierde lo de este aparato).\n"Cancelar" = subir los de ESTE aparato a la nube (se pierde lo de la nube).');
+    if(useRemote){
+      applyRemote(remote);
+      syncStatusEl.textContent = '☁️ Traído de la nube';
+    } else {
+      var ok2 = await saveToGitHub(state);
+      syncStatusEl.textContent = ok2 ? '☁️ Subido a la nube' : '❌ No se pudo subir';
+    }
+    syncBtn.disabled = false;
+  }
+
+  syncBtn.addEventListener('click', syncNow);
+
+  // Al abrir, un vistazo automático de solo lectura (sin pisar nada solo, sin preguntar):
+  // si coincide o no hay nada aún, no molesta; si difiere, avisa para que uses el botón.
+  loadFromGitHub().then(function(remote){
+    if(remote === undefined){
+      syncStatusEl.textContent = '📴 Sin conexión — tocá "Sincronizar" cuando tengas internet';
+    } else if(remote === null){
+      syncStatusEl.textContent = '☁️ Sin datos en la nube todavía — tocá "Sincronizar" para subir';
+    } else if(JSON.stringify(remote) === JSON.stringify(state)){
+      syncStatusEl.textContent = '☁️ Al día con la nube';
+    } else {
+      syncStatusEl.textContent = '⚠️ Hay diferencias con la nube — tocá "Sincronizar"';
+    }
   });
 
   var exportLink = document.getElementById('exportLink');
