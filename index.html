@@ -740,9 +740,6 @@
   }
 
   function render(){
-    if(document.activeElement !== kmActualInput){
-      kmActualInput.value = state.kmActual;
-    }
     renderDashTarget();
     if(historyPanel.style.display === 'block'){
       renderServices();
@@ -902,6 +899,7 @@
       state = remote;
       normalizeState();
       try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){}
+      if(document.activeElement !== kmActualInput) kmActualInput.value = state.kmActual;
       render();
       syncStatusEl.textContent = '☁️ Sincronizado (ti3wti/himalayan450)';
     } else if(remote === null){
@@ -918,6 +916,7 @@
           state = remote2;
           normalizeState();
           try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){}
+          if(document.activeElement !== kmActualInput) kmActualInput.value = state.kmActual;
           render();
         }
       });
@@ -988,6 +987,7 @@
         }
         state = parsed;
         normalizeState();
+        kmActualInput.value = state.kmActual;
         saveState(state);
         render();
         importFile.value = '';
