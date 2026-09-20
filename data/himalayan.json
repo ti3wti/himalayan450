@@ -1,5 +1,5 @@
 {
-  "kmActual": "8985",
+  "kmActual": "8996",
   "services": {
     "rev1": {
       "date": "2024-10-04",
@@ -17,13 +17,9 @@
   "items": {
     "oil_level": {
       "currentServiceId": null,
-      "lastKm": "8985",
+      "lastKm": "8991",
       "lastDate": "2026-09-19",
       "history": [
-        {
-          "date": "2026-09-19",
-          "km": "8991"
-        },
         {
           "serviceId": "rev3"
         },
