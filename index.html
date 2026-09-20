@@ -166,6 +166,8 @@
   }
   .btn-done{border-color:var(--ok) !important; color:var(--ok) !important;}
   .btn-done:hover{background:rgba(63,122,78,.12);}
+  .btn-replace{border-color:var(--accent) !important; color:var(--accent) !important;}
+  .btn-replace:hover{background:rgba(201,162,39,.12);}
   .btn-hist{color:var(--text-dim) !important;}
   .btn-undo{color:var(--warn) !important; border-color:var(--warn) !important;}
   .btn-undo:hover{background:rgba(168,122,18,.12);}
@@ -501,6 +503,10 @@
       var rec = state.items[it.id];
       if(!rec.history) rec.history = [];
       if(rec.currentServiceId === undefined) rec.currentServiceId = null;
+      if(!rec.installHistory) rec.installHistory = [];
+      if(rec.installedDate === undefined){
+        rec.installedDate = it.consumableStartDefault || rec.lastDate || todayISO();
+      }
 
       // Corrección puntual: battery_life se creó por un rato con la fecha de hoy
       // en vez de la fecha real de compra de la moto. Se arregla una sola vez.
@@ -682,6 +688,19 @@
   }
   window.markItemDone = markItemDone;
 
+  // Solo para consumibles: marca que la PIEZA FÍSICA se reemplazó hoy (reinicia
+  // "en uso desde" y archiva cuánto duró la unidad anterior). No toca el chequeo
+  // de intervalo — para eso sigue usándose "Marcar hecho hoy" normal.
+  function markReplaced(id){
+    var rec = state.items[id];
+    var installed = rec.installedDate || todayISO();
+    rec.installHistory.unshift({ date: installed });
+    rec.installedDate = todayISO();
+    saveState(state);
+    render();
+  }
+  window.markReplaced = markReplaced;
+
   function computeItem(it){
     var rec = state.items[it.id];
     var cur = resolveCurrent(rec);
@@ -823,21 +842,25 @@
     intervalStr = intervalStr.join(' / ') || '—';
 
     var badgeText = c.status === 'danger' ? (it.dangerLabel || 'Vencido') : (c.status === 'warn' ? 'Próximo' : 'Al día');
+    var instDuration = it.consumable ? durationLabel(rec.installedDate, todayISO()) : '';
 
     var currentRow = (cur.date || cur.km) ?
-      '<div class="hist-row"><strong>' + (cur.date ? fmtDate(new Date(cur.date + 'T00:00:00')) : '—') + (cur.km ? ' · ' + Number(cur.km).toLocaleString('es-CR') + ' km' : '') + '</strong> <span style="color:var(--ok);">(' + (cur.date === todayISO() ? 'HOY — vigente' : 'vigente') + (cur.label ? ' — ' + cur.label : '') + ')</span>' +
-      (it.consumable && cur.date ? ' <span style="color:var(--accent);">· en uso hace ' + durationLabel(cur.date, todayISO()) + '</span>' : '') +
-      '</div>'
+      '<div class="hist-row"><strong>' + (cur.date ? fmtDate(new Date(cur.date + 'T00:00:00')) : '—') + (cur.km ? ' · ' + Number(cur.km).toLocaleString('es-CR') + ' km' : '') + '</strong> <span style="color:var(--ok);">(' + (cur.date === todayISO() ? 'HOY — vigente' : 'vigente') + (cur.label ? ' — ' + cur.label : '') + ')</span></div>'
+      : '';
+    var installRows = it.consumable ?
+      '<div class="hist-row"><strong>Instalada: ' + fmtDate(new Date(rec.installedDate + 'T00:00:00')) + '</strong> <span style="color:var(--accent);">· en uso hace ' + instDuration + '</span></div>' +
+      rec.installHistory.map(function(h, idx){
+        var newer = idx === 0 ? rec.installedDate : rec.installHistory[idx-1].date;
+        return '<div class="hist-row"><span style="color:var(--text-dim);">Unidad anterior: instalada ' + fmtDate(new Date(h.date + 'T00:00:00')) + ' · duró ' + durationLabel(h.date, newer) + '</span></div>';
+      }).join('')
       : '';
     var historyRows = currentRow + rec.history.map(function(h, idx){
       var rh = resolveEntry(h);
       var lockedNote = rh.serviceId ? ' <span style="color:var(--text-dim); font-size:.7rem;">(' + rh.label + ' — editar arriba en "Revisiones de agencia")</span>' : '';
-      var newerDate = idx === 0 ? cur.date : resolveEntry(rec.history[idx-1]).date;
-      var durTxt = (it.consumable && rh.date && newerDate) ? ' <span style="color:var(--text-dim); font-size:.7rem;">· duró ' + durationLabel(rh.date, newerDate) + '</span>' : '';
       return '<div class="hist-row hist-edit-row">' +
         '<input type="date" class="hist-input" data-id="' + it.id + '" data-idx="' + idx + '" data-field="histDate" value="' + (rh.date || '') + '"' + (rh.serviceId ? ' disabled' : '') + '>' +
         '<input type="number" class="hist-input" data-id="' + it.id + '" data-idx="' + idx + '" data-field="histKm" value="' + (rh.km || '') + '" placeholder="km"' + (rh.serviceId ? ' disabled' : '') + '>' +
-        lockedNote + durTxt +
+        lockedNote +
         '<button class="btn-del-hist" data-id="' + it.id + '" data-idx="' + idx + '" title="Eliminar registro">🗑</button>' +
       '</div>';
     }).join('');
@@ -849,12 +872,14 @@
       '</div>' +
       '<div class="item-meta">' + it.action + ' — ' + intervalStr + '</div>' +
       (it.spec ? '<div class="item-meta" style="color:var(--accent);">📋 ' + it.spec + '</div>' : '') +
-      '<div class="item-status">' + statusLine(c) + (it.consumable && cur.date ? ' · <span class="num-highlight">en uso hace ' + durationLabel(cur.date, todayISO()) + '</span>' : '') + '</div>' +
+      '<div class="item-status">' + statusLine(c) + (it.consumable ? ' · <span class="num-highlight">en uso hace ' + instDuration + '</span>' : '') + '</div>' +
       '<div class="item-actions">' +
-        '<button class="btn-done" data-id="' + it.id + '">✓ Marcar hecho hoy</button>' +
+        '<button class="btn-done" data-id="' + it.id + '" title="Solo revisaste, sigue igual: extiende el próximo chequeo">✓ Marcar hecho hoy</button>' +
+        (it.consumable ? '<button class="btn-replace" data-id="' + it.id + '" title="Cambiaste la pieza física: reinicia el reloj de uso">🔧 Marcar reemplazado</button>' : '') +
         (rec.history.length ? '<button class="btn-undo" data-id="' + it.id + '">↩ Deshacer último cambio</button>' : '') +
         '<button class="btn-hist" data-id="' + it.id + '">Historial' + (rec.history.length ? ' (' + rec.history.length + ')' : '') + '</button>' +
       '</div>' +
+      (it.consumable ? '<div class="item-history" style="display:block; margin-top:9px;">' + installRows + '</div>' : '') +
       '<div class="item-history" id="hist-' + it.id + '" style="display:none;">' + (historyRows || '<div class="hist-row">Sin registros previos.</div>') + '</div>' +
       '<div class="item-edit">' +
         (it.km !== null ?
@@ -866,6 +891,12 @@
     div.querySelector('.btn-done').addEventListener('click', function(){
       markItemDone(it.id);
     });
+    var replaceBtn = div.querySelector('.btn-replace');
+    if(replaceBtn){
+      replaceBtn.addEventListener('click', function(){
+        markReplaced(it.id);
+      });
+    }
     var undoBtn = div.querySelector('.btn-undo');
     if(undoBtn){
       undoBtn.addEventListener('click', function(){
