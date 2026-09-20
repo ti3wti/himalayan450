@@ -788,9 +788,7 @@
         (it.km !== null ?
           '<div class="field"><label>Último km' + (it.months? ' de reemplazo':'') + (cur.serviceId ? ' (vinculado a ' + cur.label + ')' : '') + '</label><input type="number" data-field="lastKm" data-id="' + it.id + '" value="' + (cur.km || '') + '" placeholder="km"></div>'
           : '') +
-        (it.months !== null ?
-          '<div class="field"><label>Última fecha' + (cur.serviceId ? ' (vinculada a ' + cur.label + ')' : '') + '</label><input type="date" data-field="lastDate" data-id="' + it.id + '" value="' + (cur.date || '') + '"></div>'
-          : '') +
+        '<div class="field"><label>Última fecha' + (cur.serviceId ? ' (vinculada a ' + cur.label + ')' : (it.months ? '' : ' (informativa)')) + '</label><input type="date" data-field="lastDate" data-id="' + it.id + '" value="' + (cur.date || '') + '"></div>' +
       '</div>';
 
     div.querySelector('.btn-done').addEventListener('click', function(){
