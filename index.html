@@ -335,11 +335,21 @@
   var SERVICES_DEFAULT = {
     rev1: { date:'2024-10-04', km:'500' },
     rev2: { date:'2025-04-30', km:'5000' },
-    rev3: { date:'2026-05-22', km:'7900' }
+    rev3: { date:'2026-05-22', km:'7900' },
+    rev4: { date:'', km:'' },
+    rev5: { date:'', km:'' },
+    rev6: { date:'', km:'' },
+    rev7: { date:'', km:'' },
+    rev8: { date:'', km:'' },
+    rev9: { date:'', km:'' },
+    rev10: { date:'', km:'' },
+    rev11: { date:'', km:'' }
   };
-  var SERVICE_ORDER = ['rev1', 'rev2', 'rev3'];
+  var SERVICE_ORDER = ['rev1', 'rev2', 'rev3', 'rev4', 'rev5', 'rev6', 'rev7', 'rev8', 'rev9', 'rev10', 'rev11'];
+  // Revisiones reales, ya ocurridas (las únicas que se enlazan solas al historial de cada ítem)
+  var KNOWN_PAST_SERVICES = ['rev1', 'rev2', 'rev3'];
   // Etiquetas cortas, siempre frescas (no se guardan, así que un cambio de texto se ve al toque)
-  var SERVICE_LABELS = { rev1:'Rev 1', rev2:'Rev 2', rev3:'Rev 3' };
+  var SERVICE_LABELS = { rev1:'Rev 1', rev2:'Rev 2', rev3:'Rev 3', rev4:'Rev 4', rev5:'Rev 5', rev6:'Rev 6', rev7:'Rev 7', rev8:'Rev 8', rev9:'Rev 9', rev10:'Rev 10', rev11:'Rev 11' };
 
   // Contador oficial del tablero: leído el 19-set-2026 con el odómetro en 8989 km,
   // el propio dash mostraba "Revisión en: 4219 km / 61 días" (lo que ocurra primero).
@@ -363,7 +373,8 @@
     {id:'lever_pivots', name:'Pivotes de palancas (freno/embrague)', action:'Lubricar', km:1000, months:null},
     {id:'tyres', name:'Neumáticos', action:'Revisar desgaste y presión', km:5000, months:6},
     {id:'battery', name:'Terminales de batería', action:'Revisar / vaselina', km:5000, months:6},
-    {id:'general', name:'Revisión general (dirección, radios, tornillería de motor/chasis, mangueras de freno)', action:'Inspeccionar', km:5000, months:6}
+    {id:'general', name:'Revisión general (dirección, radios, tornillería de motor/chasis, mangueras de freno)', action:'Inspeccionar', km:5000, months:6},
+    {id:'battery_life', name:'Batería (vida útil)', action:'Evaluar arranque/carga — considerar reemplazo (VRLA suele durar 2–4 años)', km:null, months:12}
   ];
 
   function showToast(msg, kind){
@@ -467,9 +478,10 @@
   if(state.kmActual === undefined) state.kmActual = 8989;
 
   function findServiceIdByDate(dateStr){
-    for(var i=0;i<SERVICE_ORDER.length;i++){
-      var sid = SERVICE_ORDER[i];
-      if(state.services[sid].date === dateStr) return sid;
+    if(!dateStr) return null;
+    for(var i=0;i<KNOWN_PAST_SERVICES.length;i++){
+      var sid = KNOWN_PAST_SERVICES[i];
+      if(state.services[sid].date && state.services[sid].date === dateStr) return sid;
     }
     return null;
   }
@@ -483,19 +495,23 @@
     if(!state.items) state.items = {};
     ITEMS.forEach(function(it){
       if(!state.items[it.id]){
-        state.items[it.id] = { currentServiceId: it.km ? 'rev3' : null, lastKm: '', lastDate: it.months ? state.services.rev3.date : '', history: [] };
+        if(it.id === 'battery_life'){
+          state.items[it.id] = { currentServiceId: null, lastKm: '', lastDate: todayISO(), history: [] };
+        } else {
+          state.items[it.id] = { currentServiceId: it.km ? 'rev3' : null, lastKm: '', lastDate: it.months ? state.services.rev3.date : '', history: [] };
+        }
       }
       var rec = state.items[it.id];
       if(!rec.history) rec.history = [];
       if(rec.currentServiceId === undefined) rec.currentServiceId = null;
 
       // Migración: registros de versiones anteriores guardaban fecha/km sueltos.
-      // Si coinciden con una revisión conocida, se enlazan; si no, quedan como entrada personal.
+      // Si coinciden con una revisión real conocida, se enlazan; si no, quedan como entrada personal.
       if(!rec.currentServiceId && rec.lastDate){
         var sid = findServiceIdByDate(rec.lastDate);
         if(sid) rec.currentServiceId = sid;
       }
-      if(rec.history.length === 0 && !rec.currentServiceId){
+      if(rec.history.length === 0 && !rec.currentServiceId && it.id !== 'battery_life'){
         // ítem nunca inicializado: arrancarlo en la revisión 3 (línea base actual)
         rec.currentServiceId = 'rev3';
       }
@@ -505,16 +521,18 @@
           if(sid2) h.serviceId = sid2;
         }
       });
-      // completar el historial con las revisiones anteriores que falten (rev1/rev2) si el ítem no las tiene
+      // completar el historial con las revisiones reales anteriores que falten (rev1/rev2) si el ítem no las tiene
       var haveIds = {};
       if(rec.currentServiceId) haveIds[rec.currentServiceId] = true;
       rec.history.forEach(function(h){ if(h.serviceId) haveIds[h.serviceId] = true; });
-      SERVICE_ORDER.slice(0, -1).forEach(function(sid){ // rev1, rev2 (no rev3, esa es la vigente por defecto)
-        if(!haveIds[sid]){
-          rec.history.push({ serviceId: sid });
+      if(it.id !== 'battery_life'){
+        KNOWN_PAST_SERVICES.slice(0, -1).forEach(function(sid){ // rev1, rev2 (no rev3, esa es la vigente por defecto)
+          if(!haveIds[sid]){
+            rec.history.push({ serviceId: sid });
           haveIds[sid] = true;
         }
-      });
+        });
+      }
       rec.history.sort(function(a,b){
         return resolveEntryDate(b).localeCompare(resolveEntryDate(a));
       });
@@ -819,7 +837,7 @@
         (it.km !== null ?
           '<div class="field"><label>Último km' + (it.months? ' de reemplazo':'') + (cur.serviceId ? ' (vinculado a ' + cur.label + ')' : '') + '</label><input type="number" data-field="lastKm" data-id="' + it.id + '" value="' + (cur.km || '') + '" placeholder="km"></div>'
           : '') +
-        '<div class="field"><label>Última fecha' + (cur.serviceId ? ' (vinculada a ' + cur.label + ')' : '') + '</label><input type="date" data-field="lastDate" data-id="' + it.id + '" value="' + (cur.date || '') + '"></div>' +
+        '<div class="field"' + (it.km === null ? ' style="grid-column:1 / -1;"' : '') + '><label>Última fecha' + (cur.serviceId ? ' (vinculada a ' + cur.label + ')' : '') + '</label><input type="date" data-field="lastDate" data-id="' + it.id + '" value="' + (cur.date || '') + '"></div>' +
       '</div>';
 
     div.querySelector('.btn-done').addEventListener('click', function(){
