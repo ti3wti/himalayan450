@@ -96,7 +96,7 @@
     text-align:center;
   }
   .pill .n{font-family:'Oswald',sans-serif; font-size:1.4rem; font-weight:600; line-height:1;}
-  .pill .l{font-size:.68rem; color:var(--text-dim); margin-top:4px; white-space:nowrap;}
+  .pill .l{font-size:.9rem; color:var(--text-dim); margin-top:4px; white-space:nowrap;}
   .pill.danger .n{color:var(--danger);}
   .pill.warn .n{color:var(--warn);}
   .pill.ok .n{color:var(--ok);}
@@ -131,14 +131,16 @@
 
   .item-meta{font-size:.88rem; color:var(--text-dim); margin-top:2px;}
   .item-status{font-size:.92rem; margin-top:6px;}
+  .num-highlight{color:var(--accent); font-weight:700;}
 
   .item-edit{
     display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;
     padding-top:10px; border-top:1px dashed var(--border);
+    align-items:end;
   }
   .item-edit .field{min-width:0;}
-  .item-edit .field label{font-size:.76rem; display:block; margin-bottom:5px;}
-  .item-edit input{width:100%; padding:8px 9px; font-size:.9rem; box-sizing:border-box;}
+  .item-edit .field label{font-size:.85rem; display:block; margin-bottom:6px; line-height:1.25;}
+  .item-edit input{width:100%; padding:10px 10px; font-size:1.05rem; box-sizing:border-box;}
 
   .item-actions{display:flex; gap:8px; margin-top:9px; flex-wrap:wrap;}
   .item-actions button{
@@ -292,10 +294,6 @@
   </div>
 
   <footer>
-    Basado en el cuadro «Periodical Maintenance» del manual del propietario (algunas revisiones menores del cuadro oficial
-    se agruparon aquí bajo "Revisión general" por simplicidad). Los datos se guardan en este navegador/dispositivo
-    (y en la nube de Claude cuando está disponible). Para intervalos exactos por ítem o para el registro de garantía,
-    siempre válido el chequeo en un Centro de Servicio Autorizado Royal Enfield.
     <div class="io-row">
       <a href="#" id="exportLink">Exportar datos (respaldo)</a> · <a href="#" id="importLink">Importar datos</a>
       <input type="file" id="importFile" accept="application/json,.json" style="display:none">
@@ -682,16 +680,16 @@
     var parts = [];
     if(c.nextKm !== null){
       if(c.kmRemaining !== null){
-        parts.push(c.kmRemaining <= 0 ? ('vencido hace ' + Math.abs(Math.round(c.kmRemaining)) + ' km') : ('faltan ' + Math.round(c.kmRemaining) + ' km'));
+        parts.push(c.kmRemaining <= 0 ? ('vencido hace <strong class="num-highlight">' + Math.abs(Math.round(c.kmRemaining)) + ' km</strong>') : ('faltan <strong class="num-highlight">' + Math.round(c.kmRemaining) + ' km</strong>'));
       } else {
-        parts.push('próximo a los ' + c.nextKm.toLocaleString('es-CR') + ' km');
+        parts.push('próximo a los <strong class="num-highlight">' + c.nextKm.toLocaleString('es-CR') + ' km</strong>');
       }
     }
     if(c.nextDate !== null){
       if(c.daysRemaining <= 0){
         parts.push('vencido desde el ' + fmtDate(c.nextDate));
       } else {
-        parts.push('antes del ' + fmtDate(c.nextDate) + ' (' + c.daysRemaining + ' días)');
+        parts.push('antes del ' + fmtDate(c.nextDate) + ' (<strong class="num-highlight">' + c.daysRemaining + ' días</strong>)');
       }
     }
     if(parts.length === 0) return 'Completa los datos para calcular.';
@@ -719,7 +717,7 @@
     document.getElementById('dashStatus').innerHTML =
       '<span class="badge ' + status + '" style="margin-right:8px;">' + (status==='danger'?'Vencido':status==='warn'?'Próximo':'Al día') + '</span>' +
       parts.join(' · ') +
-      '<div style="color:var(--text-dim); font-size:.75rem; margin-top:6px;">Según el propio tablero de la moto, leído el 19-set-2026 en 8.989 km ("Revisión en: 4.219 km / 61 días").</div>';
+      '';
   }
 
   function render(){
@@ -798,7 +796,7 @@
         (it.km !== null ?
           '<div class="field"><label>Último km' + (it.months? ' de reemplazo':'') + (cur.serviceId ? ' (vinculado a ' + cur.label + ')' : '') + '</label><input type="number" data-field="lastKm" data-id="' + it.id + '" value="' + (cur.km || '') + '" placeholder="km"></div>'
           : '') +
-        '<div class="field"><label>Última fecha' + (cur.serviceId ? ' (vinculada a ' + cur.label + ')' : (it.months ? '' : ' (informativa)')) + '</label><input type="date" data-field="lastDate" data-id="' + it.id + '" value="' + (cur.date || '') + '"></div>' +
+        '<div class="field"><label>Última fecha' + (cur.serviceId ? ' (vinculada a ' + cur.label + ')' : '') + '</label><input type="date" data-field="lastDate" data-id="' + it.id + '" value="' + (cur.date || '') + '"></div>' +
       '</div>';
 
     div.querySelector('.btn-done').addEventListener('click', function(){
