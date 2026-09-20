@@ -374,6 +374,7 @@
   var githubFileSha = null;
   var ghSyncTimer = null;
   var pendingWrites = false;
+  var lastWriteTime = 0;
 
   function b64EncodeUnicode(str){ return btoa(unescape(encodeURIComponent(str))); }
   function b64DecodeUnicode(str){ return decodeURIComponent(escape(atob(str.replace(/\n/g, '')))); }
@@ -438,6 +439,7 @@
     var toSend = latestQueuedState;
     latestQueuedState = null;
     await saveToGitHub(toSend);
+    lastWriteTime = Date.now();
     writeInFlight = false;
     if(latestQueuedState !== null) runQueuedWrite();
     else pendingWrites = false;
@@ -909,9 +911,9 @@
       syncStatusEl.textContent = '📴 Sin conexión — guardando solo en este dispositivo';
     }
     setInterval(function(){
-      if(pendingWrites) return; // hay un guardado en camino: no pisarlo con una lectura vieja
+      if(pendingWrites || (Date.now() - lastWriteTime) < 3000) return; // guardado en camino o recién hecho: no pisarlo
       loadFromGitHub().then(function(remote2){
-        if(pendingWrites) return; // pudo haber empezado un guardado mientras esperábamos la respuesta
+        if(pendingWrites || (Date.now() - lastWriteTime) < 3000) return;
         if(remote2 && JSON.stringify(remote2) !== JSON.stringify(state)){
           state = remote2;
           normalizeState();
