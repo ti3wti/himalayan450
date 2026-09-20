@@ -57,6 +57,13 @@
   }
   .btn-sync:disabled{opacity:.5; cursor:default;}
   .btn-sync:hover:not(:disabled){background:rgba(201,162,39,.12);}
+  .btn-pull{
+    font-family:inherit; font-size:.78rem; font-weight:600; cursor:pointer;
+    border-radius:7px; padding:6px 12px; border:1px solid var(--border);
+    background:transparent; color:var(--text-dim); white-space:nowrap;
+  }
+  .btn-pull:disabled{opacity:.5; cursor:default;}
+  .btn-pull:hover:not(:disabled){background:var(--bg-sub);}
 
   .panel{
     background:var(--bg-elev); border:1px solid var(--border);
@@ -232,7 +239,8 @@
       <div class="sub">Royal Enfield Himalayan 450 — según cuadro periódico del manual</div>
       <div class="sub-row">
         <div class="sub" id="syncStatus">🔄 Cargando…</div>
-        <button id="syncBtn" class="btn-sync">☁️ Sincronizar</button>
+        <button id="syncBtn" class="btn-sync">☁️ Guardar en la nube</button>
+        <button id="pullBtn" class="btn-pull">⬇️ Traer de la nube</button>
       </div>
     </div>
   </header>
@@ -866,6 +874,7 @@
 
   var syncStatusEl = document.getElementById('syncStatus');
   var syncBtn = document.getElementById('syncBtn');
+  var pullBtn = document.getElementById('pullBtn');
 
   function applyRemote(remote){
     state = remote;
@@ -875,56 +884,44 @@
     render();
   }
 
-  async function syncNow(){
-    syncBtn.disabled = true;
-    syncStatusEl.textContent = '🔄 Sincronizando…';
-    var remote = await loadFromGitHub();
-
-    if(remote === undefined){
-      syncStatusEl.textContent = '❌ No se pudo conectar a GitHub (revisá tu internet)';
-      syncBtn.disabled = false;
-      return;
-    }
-
-    if(remote === null){
-      // Todavía no existe el archivo en el repo: esta es la primera subida.
-      var ok1 = await saveToGitHub(state);
-      syncStatusEl.textContent = ok1 ? '☁️ Subido por primera vez' : '❌ No se pudo subir';
-      syncBtn.disabled = false;
-      return;
-    }
-
-    if(JSON.stringify(remote) === JSON.stringify(state)){
-      syncStatusEl.textContent = '☁️ Ya estabas al día';
-      syncBtn.disabled = false;
-      return;
-    }
-
-    // Hay diferencias: el usuario decide, sin adivinar ni mezclar solo.
-    var useRemote = await showConfirm('Hay datos distintos entre este aparato y la nube.\n\n"Continuar" = traer los de la NUBE aquí (se pierde lo de este aparato).\n"Cancelar" = subir los de ESTE aparato a la nube (se pierde lo de la nube).');
-    if(useRemote){
-      applyRemote(remote);
-      syncStatusEl.textContent = '☁️ Traído de la nube';
-    } else {
-      var ok2 = await saveToGitHub(state);
-      syncStatusEl.textContent = ok2 ? '☁️ Subido a la nube' : '❌ No se pudo subir';
-    }
-    syncBtn.disabled = false;
+  // Guardar en la nube: SIEMPRE sube lo de este aparato, sin preguntar nada.
+  async function saveToCloud(){
+    syncBtn.disabled = true; pullBtn.disabled = true;
+    syncStatusEl.textContent = '🔄 Guardando en la nube…';
+    var ok = await saveToGitHub(state);
+    syncStatusEl.textContent = ok ? '☁️ Guardado en la nube' : '❌ No se pudo guardar (revisá tu internet)';
+    syncBtn.disabled = false; pullBtn.disabled = false;
   }
 
-  syncBtn.addEventListener('click', syncNow);
+  // Traer de la nube: SIEMPRE baja lo que hay en GitHub, sin preguntar nada.
+  async function pullFromCloud(){
+    syncBtn.disabled = true; pullBtn.disabled = true;
+    syncStatusEl.textContent = '🔄 Trayendo de la nube…';
+    var remote = await loadFromGitHub();
+    if(remote === undefined){
+      syncStatusEl.textContent = '❌ No se pudo conectar (revisá tu internet)';
+    } else if(remote === null){
+      syncStatusEl.textContent = '☁️ Todavía no hay nada guardado en la nube';
+    } else {
+      applyRemote(remote);
+      syncStatusEl.textContent = '⬇️ Traído de la nube';
+    }
+    syncBtn.disabled = false; pullBtn.disabled = false;
+  }
 
-  // Al abrir, un vistazo automático de solo lectura (sin pisar nada solo, sin preguntar):
-  // si coincide o no hay nada aún, no molesta; si difiere, avisa para que uses el botón.
+  syncBtn.addEventListener('click', saveToCloud);
+  pullBtn.addEventListener('click', pullFromCloud);
+
+  // Al abrir, un vistazo automático de solo lectura (no cambia nada, solo avisa).
   loadFromGitHub().then(function(remote){
     if(remote === undefined){
-      syncStatusEl.textContent = '📴 Sin conexión — tocá "Sincronizar" cuando tengas internet';
+      syncStatusEl.textContent = '📴 Sin conexión — probá cuando tengas internet';
     } else if(remote === null){
-      syncStatusEl.textContent = '☁️ Sin datos en la nube todavía — tocá "Sincronizar" para subir';
+      syncStatusEl.textContent = '☁️ Sin datos en la nube todavía — tocá "Guardar en la nube"';
     } else if(JSON.stringify(remote) === JSON.stringify(state)){
       syncStatusEl.textContent = '☁️ Al día con la nube';
     } else {
-      syncStatusEl.textContent = '⚠️ Hay diferencias con la nube — tocá "Sincronizar"';
+      syncStatusEl.textContent = '⚠️ Hay diferencias con la nube — "Guardar" sube lo de aquí, "Traer" baja lo de la nube';
     }
   });
 
