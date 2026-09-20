@@ -113,9 +113,9 @@
   .item.ok{border-left-color:var(--ok);}
 
   .item-top{display:flex; justify-content:space-between; align-items:baseline; gap:10px;}
-  .item-name{font-weight:600; font-size:.96rem;}
+  .item-name{font-weight:600; font-size:1.05rem;}
   .badge{
-    font-size:.7rem; font-weight:600; padding:2px 9px; border-radius:99px;
+    font-size:.76rem; font-weight:600; padding:3px 10px; border-radius:99px;
     white-space:nowrap; text-transform:uppercase; letter-spacing:.03em;
   }
   .badge.danger{background:rgba(178,58,46,.15); color:var(--danger); animation:blinkDanger 1.3s ease-in-out infinite;}
@@ -127,20 +127,21 @@
     50% { opacity:.35; }
   }
 
-  .item-meta{font-size:.8rem; color:var(--text-dim); margin-top:2px;}
-  .item-status{font-size:.85rem; margin-top:6px;}
+  .item-meta{font-size:.88rem; color:var(--text-dim); margin-top:2px;}
+  .item-status{font-size:.92rem; margin-top:6px;}
 
   .item-edit{
-    display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;
+    display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;
     padding-top:10px; border-top:1px dashed var(--border);
   }
-  .item-edit .field label{font-size:.72rem;}
-  .item-edit input{width:120px; padding:6px 8px; font-size:.85rem;}
+  .item-edit .field{min-width:0;}
+  .item-edit .field label{font-size:.76rem; display:block; margin-bottom:5px;}
+  .item-edit input{width:100%; padding:8px 9px; font-size:.9rem; box-sizing:border-box;}
 
   .item-actions{display:flex; gap:8px; margin-top:9px; flex-wrap:wrap;}
   .item-actions button{
-    font-family:inherit; font-size:.78rem; font-weight:600; cursor:pointer;
-    border-radius:7px; padding:6px 11px; border:1px solid var(--border);
+    font-family:inherit; font-size:.85rem; font-weight:600; cursor:pointer;
+    border-radius:7px; padding:8px 12px; border:1px solid var(--border);
     background:var(--bg-sub); color:var(--text);
   }
   .btn-done{border-color:var(--ok) !important; color:var(--ok) !important;}
@@ -912,16 +913,19 @@
   syncBtn.addEventListener('click', saveToCloud);
   pullBtn.addEventListener('click', pullFromCloud);
 
-  // Al abrir, un vistazo automático de solo lectura (no cambia nada, solo avisa).
+  // Al abrir la página, traer automáticamente lo que haya en la nube — todavía
+  // no tocaste nada en este aparato, así que no hay nada local que perder.
+  syncStatusEl.textContent = '🔄 Cargando desde la nube…';
   loadFromGitHub().then(function(remote){
     if(remote === undefined){
-      syncStatusEl.textContent = '📴 Sin conexión — probá cuando tengas internet';
+      syncStatusEl.textContent = '📴 Sin conexión — mostrando lo guardado en este aparato';
     } else if(remote === null){
       syncStatusEl.textContent = '☁️ Sin datos en la nube todavía — tocá "Guardar en la nube"';
     } else if(JSON.stringify(remote) === JSON.stringify(state)){
       syncStatusEl.textContent = '☁️ Al día con la nube';
     } else {
-      syncStatusEl.textContent = '⚠️ Hay diferencias con la nube — "Guardar" sube lo de aquí, "Traer" baja lo de la nube';
+      applyRemote(remote);
+      syncStatusEl.textContent = '☁️ Cargado desde la nube';
     }
   });
 
