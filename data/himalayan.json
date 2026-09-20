@@ -12,6 +12,38 @@
     "rev3": {
       "date": "2026-05-22",
       "km": "7900"
+    },
+    "rev4": {
+      "date": "",
+      "km": ""
+    },
+    "rev5": {
+      "date": "",
+      "km": ""
+    },
+    "rev6": {
+      "date": "",
+      "km": ""
+    },
+    "rev7": {
+      "date": "",
+      "km": ""
+    },
+    "rev8": {
+      "date": "",
+      "km": ""
+    },
+    "rev9": {
+      "date": "",
+      "km": ""
+    },
+    "rev10": {
+      "date": "",
+      "km": ""
+    },
+    "rev11": {
+      "date": "",
+      "km": ""
     }
   },
   "items": {
@@ -218,6 +250,35 @@
           "serviceId": "rev1"
         }
       ]
+    },
+    "brake_pads_front": {
+      "currentServiceId": "rev3",
+      "lastKm": "",
+      "lastDate": "2026-05-22",
+      "history": [
+        {
+          "serviceId": "rev2"
+        },
+        {
+          "serviceId": "rev1"
+        }
+      ]
+    },
+    "brake_pads_rear": {
+      "currentServiceId": "rev2",
+      "lastKm": "",
+      "lastDate": "",
+      "history": [
+        {
+          "serviceId": "rev1"
+        }
+      ]
+    },
+    "battery_life": {
+      "currentServiceId": null,
+      "lastKm": "",
+      "lastDate": "2024-09-14",
+      "history": []
     }
   }
 }
