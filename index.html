@@ -363,14 +363,15 @@
     {id:'throttle', name:'Cuerpo de aceleración', action:'Limpiar', km:40000, months:48},
     {id:'coolant', name:'Refrigerante', action:'Reemplazar', km:30000, months:36},
     {id:'brake_fluid', name:'Líquido de frenos (del. y tras.)', action:'Reemplazar', km:20000, months:24},
-    {id:'brake_pads', name:'Pastillas de freno', action:'Inspeccionar desgaste', km:5000, months:6},
+    {id:'brake_pads_front', name:'Pastillas de freno delanteras', action:'Inspeccionar desgaste', km:5000, months:6, consumable:true},
+    {id:'brake_pads_rear', name:'Pastillas de freno traseras', action:'Inspeccionar desgaste', km:5000, months:6, consumable:true, consumableStartDefault:'2025-04-30'},
     {id:'chain', name:'Cadena de transmisión', action:'Limpiar, lubricar y ajustar', km:500, months:null, spec:'Holgura (juego libre): 35–40 mm'},
     {id:'clutch', name:'Juego libre del embrague', action:'Ajustar', km:1000, months:null, spec:'9–11 mm en el extremo de la palanca'},
     {id:'lever_pivots', name:'Pivotes de palancas (freno/embrague)', action:'Lubricar', km:1000, months:null},
     {id:'tyres', name:'Neumáticos', action:'Revisar desgaste y presión', km:5000, months:6},
     {id:'battery', name:'Terminales de batería', action:'Revisar / vaselina', km:5000, months:6},
-    {id:'general', name:'Revisión general (dirección, radios, tornillería de motor/chasis, mangueras de freno)', action:'Inspeccionar', km:5000, months:6},
-    {id:'battery_life', name:'Batería (vida útil)', action:'Evaluar arranque/carga — considerar reemplazo (VRLA suele durar 2–4 años)', km:null, months:12}
+    {id:'battery_life', name:'Batería (vida útil)', action:'Evaluar arranque/carga — reemplazar cuando falle o pase de 2–4 años', km:null, months:24, consumable:true, dangerLabel:'REVISAR', consumableStartDefault:'2024-09-14'},
+    {id:'general', name:'Revisión general (dirección, radios, tornillería de motor/chasis, mangueras de freno)', action:'Inspeccionar', km:5000, months:6}
   ];
 
   function showToast(msg, kind){
@@ -491,8 +492,8 @@
     if(!state.items) state.items = {};
     ITEMS.forEach(function(it){
       if(!state.items[it.id]){
-        if(it.id === 'battery_life'){
-          state.items[it.id] = { currentServiceId: null, lastKm: '', lastDate: todayISO(), history: [] };
+        if(it.consumableStartDefault){
+          state.items[it.id] = { currentServiceId: null, lastKm: '', lastDate: it.consumableStartDefault, history: [] };
         } else {
           state.items[it.id] = { currentServiceId: it.km ? 'rev3' : null, lastKm: '', lastDate: it.months ? state.services.rev3.date : '', history: [] };
         }
@@ -500,6 +501,12 @@
       var rec = state.items[it.id];
       if(!rec.history) rec.history = [];
       if(rec.currentServiceId === undefined) rec.currentServiceId = null;
+
+      // Corrección puntual: battery_life se creó por un rato con la fecha de hoy
+      // en vez de la fecha real de compra de la moto. Se arregla una sola vez.
+      if(it.id === 'battery_life' && rec.history.length === 0 && !rec.currentServiceId && rec.lastDate !== it.consumableStartDefault){
+        rec.lastDate = it.consumableStartDefault;
+      }
 
       // Migración: registros de versiones anteriores guardaban fecha/km sueltos.
       // Si coinciden con una revisión real conocida, se enlazan; si no, quedan como entrada personal.
@@ -713,6 +720,22 @@
     return d.toLocaleDateString('es-CR', {day:'2-digit', month:'short', year:'numeric'});
   }
 
+  function durationLabel(startISO, endISO){
+    if(!startISO || !endISO) return '';
+    var start = new Date(startISO + 'T00:00:00');
+    var end = new Date(endISO + 'T00:00:00');
+    var days = Math.round((end - start) / 86400000);
+    if(days < 0) return '';
+    var years = Math.floor(days / 365);
+    var months = Math.floor((days % 365) / 30);
+    if(years > 0){
+      var yLabel = years + (years === 1 ? ' año' : ' años');
+      return months > 0 ? yLabel + ', ' + months + (months === 1 ? ' mes' : ' meses') : yLabel;
+    }
+    if(months > 0) return months + (months === 1 ? ' mes' : ' meses');
+    return days + (days === 1 ? ' día' : ' días');
+  }
+
   function statusLine(c){
     var parts = [];
     if(c.nextKm !== null){
@@ -799,18 +822,22 @@
     if(it.months) intervalStr.push('cada ' + it.months + ' meses');
     intervalStr = intervalStr.join(' / ') || '—';
 
-    var badgeText = c.status === 'danger' ? 'Vencido' : (c.status === 'warn' ? 'Próximo' : 'Al día');
+    var badgeText = c.status === 'danger' ? (it.dangerLabel || 'Vencido') : (c.status === 'warn' ? 'Próximo' : 'Al día');
 
     var currentRow = (cur.date || cur.km) ?
-      '<div class="hist-row"><strong>' + (cur.date ? fmtDate(new Date(cur.date + 'T00:00:00')) : '—') + (cur.km ? ' · ' + Number(cur.km).toLocaleString('es-CR') + ' km' : '') + '</strong> <span style="color:var(--ok);">(' + (cur.date === todayISO() ? 'HOY — vigente' : 'vigente') + (cur.label ? ' — ' + cur.label : '') + ')</span></div>'
+      '<div class="hist-row"><strong>' + (cur.date ? fmtDate(new Date(cur.date + 'T00:00:00')) : '—') + (cur.km ? ' · ' + Number(cur.km).toLocaleString('es-CR') + ' km' : '') + '</strong> <span style="color:var(--ok);">(' + (cur.date === todayISO() ? 'HOY — vigente' : 'vigente') + (cur.label ? ' — ' + cur.label : '') + ')</span>' +
+      (it.consumable && cur.date ? ' <span style="color:var(--accent);">· en uso hace ' + durationLabel(cur.date, todayISO()) + '</span>' : '') +
+      '</div>'
       : '';
     var historyRows = currentRow + rec.history.map(function(h, idx){
       var rh = resolveEntry(h);
       var lockedNote = rh.serviceId ? ' <span style="color:var(--text-dim); font-size:.7rem;">(' + rh.label + ' — editar arriba en "Revisiones de agencia")</span>' : '';
+      var newerDate = idx === 0 ? cur.date : resolveEntry(rec.history[idx-1]).date;
+      var durTxt = (it.consumable && rh.date && newerDate) ? ' <span style="color:var(--text-dim); font-size:.7rem;">· duró ' + durationLabel(rh.date, newerDate) + '</span>' : '';
       return '<div class="hist-row hist-edit-row">' +
         '<input type="date" class="hist-input" data-id="' + it.id + '" data-idx="' + idx + '" data-field="histDate" value="' + (rh.date || '') + '"' + (rh.serviceId ? ' disabled' : '') + '>' +
         '<input type="number" class="hist-input" data-id="' + it.id + '" data-idx="' + idx + '" data-field="histKm" value="' + (rh.km || '') + '" placeholder="km"' + (rh.serviceId ? ' disabled' : '') + '>' +
-        lockedNote +
+        lockedNote + durTxt +
         '<button class="btn-del-hist" data-id="' + it.id + '" data-idx="' + idx + '" title="Eliminar registro">🗑</button>' +
       '</div>';
     }).join('');
@@ -822,7 +849,7 @@
       '</div>' +
       '<div class="item-meta">' + it.action + ' — ' + intervalStr + '</div>' +
       (it.spec ? '<div class="item-meta" style="color:var(--accent);">📋 ' + it.spec + '</div>' : '') +
-      '<div class="item-status">' + statusLine(c) + '</div>' +
+      '<div class="item-status">' + statusLine(c) + (it.consumable && cur.date ? ' · <span class="num-highlight">en uso hace ' + durationLabel(cur.date, todayISO()) + '</span>' : '') + '</div>' +
       '<div class="item-actions">' +
         '<button class="btn-done" data-id="' + it.id + '">✓ Marcar hecho hoy</button>' +
         (rec.history.length ? '<button class="btn-undo" data-id="' + it.id + '">↩ Deshacer último cambio</button>' : '') +
