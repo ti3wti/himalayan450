@@ -35,6 +35,8 @@
     --border:#2A2F34;
   }
   *{box-sizing:border-box;}
+  html{font-size:18px;}
+  @media (max-width:480px){ html{font-size:19px;} }
   body{
     margin:0; background:var(--bg); color:var(--text);
     font-family:'Inter',-apple-system,sans-serif;
@@ -241,7 +243,6 @@
       <div class="sub-row">
         <div class="sub" id="syncStatus">🔄 Cargando…</div>
         <button id="syncBtn" class="btn-sync">☁️ Guardar en la nube</button>
-        <button id="pullBtn" class="btn-pull">⬇️ Traer de la nube</button>
       </div>
     </div>
   </header>
@@ -875,7 +876,6 @@
 
   var syncStatusEl = document.getElementById('syncStatus');
   var syncBtn = document.getElementById('syncBtn');
-  var pullBtn = document.getElementById('pullBtn');
 
   function applyRemote(remote){
     state = remote;
@@ -887,31 +887,14 @@
 
   // Guardar en la nube: SIEMPRE sube lo de este aparato, sin preguntar nada.
   async function saveToCloud(){
-    syncBtn.disabled = true; pullBtn.disabled = true;
+    syncBtn.disabled = true;
     syncStatusEl.textContent = '🔄 Guardando en la nube…';
     var ok = await saveToGitHub(state);
     syncStatusEl.textContent = ok ? '☁️ Guardado en la nube' : '❌ No se pudo guardar (revisá tu internet)';
-    syncBtn.disabled = false; pullBtn.disabled = false;
-  }
-
-  // Traer de la nube: SIEMPRE baja lo que hay en GitHub, sin preguntar nada.
-  async function pullFromCloud(){
-    syncBtn.disabled = true; pullBtn.disabled = true;
-    syncStatusEl.textContent = '🔄 Trayendo de la nube…';
-    var remote = await loadFromGitHub();
-    if(remote === undefined){
-      syncStatusEl.textContent = '❌ No se pudo conectar (revisá tu internet)';
-    } else if(remote === null){
-      syncStatusEl.textContent = '☁️ Todavía no hay nada guardado en la nube';
-    } else {
-      applyRemote(remote);
-      syncStatusEl.textContent = '⬇️ Traído de la nube';
-    }
-    syncBtn.disabled = false; pullBtn.disabled = false;
+    syncBtn.disabled = false;
   }
 
   syncBtn.addEventListener('click', saveToCloud);
-  pullBtn.addEventListener('click', pullFromCloud);
 
   // Al abrir la página, traer automáticamente lo que haya en la nube — todavía
   // no tocaste nada en este aparato, así que no hay nada local que perder.
