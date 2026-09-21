@@ -493,11 +493,12 @@
 
     if(!state.items) state.items = {};
     ITEMS.forEach(function(it){
+      var rev3HasData = !!(state.services.rev3 && state.services.rev3.date);
       if(!state.items[it.id]){
         if(it.consumableStartDefault){
           state.items[it.id] = { currentServiceId: null, lastKm: '', lastDate: it.consumableStartDefault, history: [] };
         } else {
-          state.items[it.id] = { currentServiceId: it.km ? 'rev3' : null, lastKm: '', lastDate: it.months ? state.services.rev3.date : '', history: [] };
+          state.items[it.id] = { currentServiceId: (it.km && rev3HasData) ? 'rev3' : null, lastKm: '', lastDate: (it.months && rev3HasData) ? state.services.rev3.date : '', history: [] };
         }
       }
       var rec = state.items[it.id];
@@ -520,7 +521,7 @@
         var sid = findServiceIdByDate(rec.lastDate);
         if(sid) rec.currentServiceId = sid;
       }
-      if(rec.history.length === 0 && !rec.currentServiceId && it.id !== 'battery_life'){
+      if(rec.history.length === 0 && !rec.currentServiceId && it.id !== 'battery_life' && rev3HasData){
         // ítem nunca inicializado: arrancarlo en la revisión 3 (línea base actual)
         rec.currentServiceId = 'rev3';
       }
@@ -536,7 +537,7 @@
       rec.history.forEach(function(h){ if(h.serviceId) haveIds[h.serviceId] = true; });
       if(it.id !== 'battery_life'){
         KNOWN_PAST_SERVICES.slice(0, -1).forEach(function(sid){ // rev1, rev2 (no rev3, esa es la vigente por defecto)
-          if(!haveIds[sid]){
+          if(!haveIds[sid] && state.services[sid] && state.services[sid].date){
             rec.history.push({ serviceId: sid });
           haveIds[sid] = true;
         }
