@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>.Bitácora — Himalayan 450</title>
+<title>- Bitácora — Himalayan 450</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -1125,10 +1125,22 @@
     // Visible solo durante la captura (si no, html2canvas no lo puede renderizar);
     // vuelve a quedar oculto apenas termina, sea éxito o error.
     reportEl.style.visibility = 'visible';
+    // Si la página está scrolleada (lo normal: el botón queda al final de una
+    // lista larga de ítems), html2canvas calcula mal la captura y el PDF sale
+    // en blanco. Hay que volver al tope antes de capturar y restaurar después.
+    var scrollX0 = window.scrollX, scrollY0 = window.scrollY;
+    window.scrollTo(0, 0);
+    // width/height/windowWidth/windowHeight explícitos: sin esto, html2canvas
+    // (dentro de html2pdf 0.10.x) usa por defecto el ancho de página A4 (794px)
+    // en vez del ancho real del elemento y calcula alto 0 → PDF en blanco.
     html2pdf().set({
       margin: 10,
       filename: filename,
-      html2canvas: { scale: 2, backgroundColor: '#ffffff', useCORS: true },
+      html2canvas: {
+        scale: 2, backgroundColor: '#ffffff', useCORS: true,
+        x: 0, y: 0, width: reportEl.scrollWidth, height: reportEl.scrollHeight,
+        windowWidth: reportEl.scrollWidth, windowHeight: reportEl.scrollHeight
+      },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
       pagebreak: { mode: ['avoid-all', 'css'] }
     }).from(reportEl).save().then(function(){
@@ -1138,6 +1150,7 @@
       showToast('No se pudo generar el PDF.', 'error');
     }).finally(function(){
       reportEl.style.visibility = 'hidden';
+      window.scrollTo(scrollX0, scrollY0);
     });
   });
 })();
